@@ -51,8 +51,14 @@ class Settings:
     hosting_type: str
     public_base_url: str
     bucket: str
+    # local Jellyfin library + retention
+    library_path: Path
+    retention_keep: int
+    retention_max_age_days: int
     # defaults
     clip_seconds: int
+    max_video_minutes: int
+    video_speed: float
     diarize: bool
     temperature: float
     max_tokens: int
@@ -90,6 +96,8 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
     sep = d.get("separation", {})
     mix = d.get("mix", {})
     orph = d.get("orpheus", {})
+    lib = d.get("library", {})
+    ret = d.get("retention", {})
     default_gguf = Path.home() / ".cache" / "polyglot" / "orpheus" / "Orpheus-3b-French-FT-Q8_0.gguf"
     return Settings(
         transcribe_backend=m["transcribe_backend"],
@@ -128,7 +136,12 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         hosting_type=h["type"],
         public_base_url=h["public_base_url"],
         bucket=h["bucket"],
+        library_path=Path(lib.get("path", "~/PolyglotLibrary")).expanduser(),
+        retention_keep=ret.get("keep", 10),
+        retention_max_age_days=ret.get("max_age_days", 7),
         clip_seconds=df["clip_seconds"],
+        max_video_minutes=df.get("max_video_minutes", 60),
+        video_speed=df.get("video_speed", 1.1),
         diarize=df["diarize"],
         temperature=df["temperature"],
         max_tokens=df["max_tokens"],

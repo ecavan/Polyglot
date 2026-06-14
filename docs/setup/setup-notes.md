@@ -132,6 +132,37 @@ not needed — r2.dev is free.
 
 ---
 
+## Distribution: private Jellyfin library + automation (current plan)
+
+Decided to **skip Apple Podcasts / YouTube upload** (copyright risk of re-uploading translated
+content) in favour of a **private, local library** served by **Jellyfin** — free, self-hosted,
+with Roku + iPhone apps, and it reads our bilingual `.srt` (French + English stacked over the video).
+
+**How it flows:** `polyglot watch` dubs new items into a library folder; Jellyfin serves them.
+- Videos  → `~/PolyglotLibrary/Videos/<show>/<title>.mp4` + `<title>.srt`
+- Podcasts → `~/PolyglotLibrary/Podcasts/<show>/<title>.mp3` + `<title>.srt`
+- The `.srt` shares the media basename, so Jellyfin auto-loads it as a subtitle track.
+
+**One-time setup:**
+1. Install Jellyfin server on the Mac (jellyfin.org or `brew install --cask jellyfin`). Open `http://localhost:8096`.
+2. Add two libraries: a **Movies/“Other Videos”** library → `~/PolyglotLibrary/Videos`; a **Music** (or Movies) library → `~/PolyglotLibrary/Podcasts`.
+3. On the **Roku**: Channel Store → install **Jellyfin** → add server `http://<mac-LAN-ip>:8096`.
+4. On **iPhone/iPad**: install the **Jellyfin** app → same server. (Both must be on your home Wi-Fi; for away-from-home, add a Tailscale VPN later.)
+5. Watch: open an item, pick the subtitle track to see French + English over the video.
+
+**Automation (retention = cap 10 + purge >7 days):**
+- `config/settings.toml` → `[library] path`, `[retention] keep/max_age_days`, `[defaults] max_video_minutes`.
+- Enable shows in `config/shows.toml` (`enabled = true`). The YouTube show (`gotham-fr`) is off by
+  default — **the first `watch` after enabling backfills up to `keep` videos and is slow** (each is a full dub).
+- Cron (every 30 min):
+  ```
+  */30 * * * * cd /Users/elijahcavan/Documents/GitHub/Polyglot && /opt/homebrew/bin/uv run polyglot watch >> /tmp/polyglot.log 2>&1
+  ```
+- `polyglot cleanup` purges the transient `cache/` (also run at the end of each `watch`).
+
+**Note:** R2 (below) is now optional — only needed if you later want a remote web app for true
+side-by-side EN/FR transcript columns / off-home access. Jellyfin covers Roku + phone for free.
+
 ## Sources
 - PTI / feeds: verified by direct fetch (Megaphone), Apple Podcasts `id147232181`.
 - Voice: Wikimedia Commons (durations confirmed via ffprobe), XTTS-v2 model card (≥6 s, clean,

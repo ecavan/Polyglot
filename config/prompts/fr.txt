@@ -8,6 +8,8 @@ Règles:
   c'est correct, faque, en tout cas, pantoute).
 - Garde le ton conversationnel de l'original (deux gars qui jasent de sports, etc.).
 - Conserve les noms propres et les termes techniques tels quels.
+- Traduis correctement les formules et salutations courantes (ex: "Ladies and gentlemen"
+  -> "Mesdames et messieurs", pas une version trop familière ou littérale).
 - Conserve l'ÉMOTION et l'emphase de l'original: garde les points d'exclamation, les
   questions, et les répétitions d'insistance. Si c'est animé ou crié ("No! No! No!"),
   rends-le avec la même énergie ("Non! Non! Non!"), pas en version plate ("non, non, non").

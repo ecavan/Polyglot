@@ -1,7 +1,16 @@
 from pathlib import Path
 
-from polyglot.subtitles import srt_timestamp, vtt_timestamp, build_srt, write_subs
+from polyglot.subtitles import srt_timestamp, vtt_timestamp, build_srt, build_ass, write_subs
 from polyglot.segments import new_segment
+
+
+def test_build_ass_side_by_side():
+    tl = [(0.0, 1.0), (1.2, 2.0)]
+    a = new_segment(0, 0, 0, "Hello"); a["translation"] = "Bonjour"
+    out = build_ass([a], tl[:1])
+    assert "Style: FR" in out and "Style: EN" in out      # two styled boxes
+    assert ",FR,," in out and ",EN,," in out               # a dialogue line per language
+    assert "Bonjour" in out and "Hello" in out
 
 
 def test_srt_timestamp():
@@ -34,6 +43,18 @@ def test_build_srt_target_only_excludes_source():
     out = build_srt(_segs(), tl, bilingual=False)
     assert "Bonjour" in out
     assert "Hello" not in out
+
+
+def test_speaker_prefix_only_when_multiple_speakers():
+    tl = [(0.0, 1.0), (1.2, 2.0)]
+    one = _segs()
+    for s in one:
+        s["speaker"] = "SPEAKER_00"          # solo -> no prefix
+    assert "SPEAKER_00:" not in build_srt(one, tl, bilingual=True)
+    two = _segs()
+    two[0]["speaker"] = "SPEAKER_00"
+    two[1]["speaker"] = "SPEAKER_01"          # multi -> prefixes shown
+    assert "SPEAKER_00:" in build_srt(two, tl, bilingual=True)
 
 
 def test_write_subs_creates_four_files(tmp_path: Path):
