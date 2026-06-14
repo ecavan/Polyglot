@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Polyglot runtime artifacts
+cache/
+output/
+state/
+voices/*.wav
+voices/**/*.wav

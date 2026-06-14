@@ -1,0 +1,36 @@
+[models]
+# --- transcription ---
+transcribe_backend = "mlx-whisper"                       # "mlx-whisper" | "faster-whisper"
+mlx_whisper_repo   = "mlx-community/whisper-large-v3-turbo"
+faster_whisper     = "medium.en"                          # used only by faster-whisper backend
+
+# --- translation ---
+translate_backend  = "mlx"                                # "mlx" | "ollama"
+mlx_llm_repo       = "mlx-community/Qwen2.5-7B-Instruct-4bit"
+ollama_model       = "mistral"                            # used only by ollama backend
+ollama_url         = "http://localhost:11434/api/chat"
+
+# --- tts ---
+tts_backend        = "xtts"                               # "xtts" | "piper"
+tts_device         = "cpu"                                # XTTS on Apple Silicon: MUST be "cpu"
+
+[paths]
+cache   = "cache"
+output  = "output"
+voices  = "voices"
+prompts = "config/prompts"
+state   = "state/processed.json"
+
+[hosting]
+type            = "r2"                                    # "r2" | "local"
+public_base_url = "https://media.example.com"             # r2.dev domain or custom CNAME
+bucket          = "polyglot-media"
+# credentials come from env vars, never this file:
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
+
+[defaults]
+clip_seconds = 0        # 0 = full episode; >0 = trim (handy for testing)
+diarize      = false
+temperature  = 0.3      # translation sampler temp (0.0 = greedy/deterministic)
+max_tokens   = 512      # per-segment translation cap
+gap_ms       = 200      # silence inserted between synthesized segments
