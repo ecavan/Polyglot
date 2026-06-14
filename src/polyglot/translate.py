@@ -4,14 +4,10 @@ from typing import Callable
 from polyglot.config import JobSpec, Settings
 
 
-def build_messages(system: str, text: str, prev_text: str | None) -> list[dict]:
-    if prev_text:
-        user = f"[contexte précédent: {prev_text}]\n{text}"
-    else:
-        user = text
+def build_messages(system: str, text: str) -> list[dict]:
     return [
         {"role": "system", "content": system},
-        {"role": "user", "content": user},
+        {"role": "user", "content": text},
     ]
 
 
@@ -20,11 +16,12 @@ def translate_with(
     system: str,
     generate: Callable[[list[dict]], str],
 ) -> list[dict]:
-    prev = None
+    # Translate each segment independently. An earlier version fed the previous
+    # English line as in-band context, but a 7B model intermittently echoed that
+    # context into its output (garbled audio + subtitles), so it was removed.
     for seg in segments:
-        msgs = build_messages(system, seg["text"], prev_text=prev)
+        msgs = build_messages(system, seg["text"])
         seg["translation"] = generate(msgs).strip()
-        prev = seg["text"]
     return segments
 
 
