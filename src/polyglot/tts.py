@@ -81,11 +81,24 @@ def expected_max_seconds(text: str) -> float:
 
 
 def _apply_speed(wav: np.ndarray, speed: float) -> np.ndarray:
-    """Pitch-preserving speed change (XTTS's own speed param is unreliable)."""
+    """Pitch-preserving speed change via rubberband (ffmpeg). rubberband preserves
+    transients and avoids the phasey/echoey smearing of a phase-vocoder stretch.
+    XTTS's own speed param is unreliable, so we stretch the rendered audio."""
     if abs(speed - 1.0) < 1e-3 or len(wav) < 2048:
         return wav
-    import librosa
-    return np.asarray(librosa.effects.time_stretch(wav, rate=speed), dtype=np.float32)
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        src, dst = Path(td) / "in.wav", Path(td) / "out.wav"
+        sf.write(str(src), wav, SR, subtype="FLOAT")
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(src), "-filter:a", f"rubberband=tempo={speed}",
+             "-ar", str(SR), "-ac", "1", str(dst)],
+            check=True, capture_output=True,
+        )
+        out, _sr = sf.read(str(dst), dtype="float32")
+    return np.asarray(out, dtype=np.float32)
 
 
 def synthesize_with(
