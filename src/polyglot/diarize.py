@@ -9,23 +9,29 @@ ECAPA_SOURCE = "speechbrain/spkrec-ecapa-voxceleb"
 MODEL_DIR = Path.home() / ".cache" / "polyglot" / "ecapa"
 
 
-def cluster_embeddings(embeddings: list, threshold: float = 0.5) -> list:
-    """Cluster speaker embeddings into speakers via a cosine distance threshold.
+def cluster_embeddings(embeddings: list, num_speakers: int = 2, threshold: float = 0.5) -> list:
+    """Cluster speaker embeddings into speakers (agglomerative, cosine, average linkage).
 
-    Agglomerative clustering merges segments whose cosine distance is below
-    `threshold`. A true single speaker (all segments close together) collapses to
-    one cluster; distinct speakers — even same-gender ones — split apart. Lower
-    threshold => more speakers.
+    - num_speakers >= 2: force exactly that many clusters (capped at n). Reliable for
+      shows with a known host count; per-segment embeddings are too noisy for stable
+      auto-detection.
+    - num_speakers == 1: single speaker (no diarization).
+    - num_speakers == 0: auto — split by `threshold` cosine distance (lower => more).
     """
     n = len(embeddings)
-    if n <= 1:
+    if n <= 1 or num_speakers == 1:
         return [0] * n
     X = np.vstack(embeddings)
     from sklearn.cluster import AgglomerativeClustering
 
-    labels = AgglomerativeClustering(
-        n_clusters=None, distance_threshold=threshold, metric="cosine", linkage="average"
-    ).fit_predict(X)
+    if num_speakers and num_speakers >= 2:
+        labels = AgglomerativeClustering(
+            n_clusters=min(num_speakers, n), metric="cosine", linkage="average"
+        ).fit_predict(X)
+    else:
+        labels = AgglomerativeClustering(
+            n_clusters=None, distance_threshold=threshold, metric="cosine", linkage="average"
+        ).fit_predict(X)
     return [int(x) for x in labels]
 
 
@@ -39,7 +45,7 @@ def count_speakers(segments: list[dict]) -> int:
     return len({s["speaker"] for s in segments if s.get("speaker")})
 
 
-def _slice(audio: np.ndarray, sr: int, start: float, end: float, min_dur: float = 1.5) -> np.ndarray:
+def _slice(audio: np.ndarray, sr: int, start: float, end: float, min_dur: float = 3.0) -> np.ndarray:
     """Audio slice for a segment, widened symmetrically to min_dur for stable embeddings."""
     s, e = int(start * sr), int(end * sr)
     if (end - start) < min_dur:
@@ -75,5 +81,7 @@ def diarize(wav_path: Path, segments: list[dict], settings: Settings) -> list[di
     if not segments:
         return segments
     embs = _embed_segments(wav_path, segments, settings)
-    labels = cluster_embeddings(embs, threshold=settings.diarize_threshold)
+    labels = cluster_embeddings(
+        embs, num_speakers=settings.num_speakers, threshold=settings.diarize_threshold
+    )
     return label_segments(segments, labels)

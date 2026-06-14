@@ -17,14 +17,14 @@ tts_device         = "cpu"                                # XTTS on Apple Silico
 [tts]
 # XTTS inference params (lower-level; tts.tts() ignores these). Higher temperature /
 # lower repetition_penalty => more expressive, less monotone (but >0.9 temp risks artifacts).
-temperature        = 0.85
+temperature        = 0.90
 repetition_penalty = 4.0
 top_p              = 0.92
 length_penalty     = 1.0
 speed              = 1.0
-# Voices assigned to detected speakers (round-robin). Alternating gender = maximum
-# acoustic contrast so voice switches are obvious. Tune via `polyglot audition`-style picks.
-voice_pool         = ["Craig Gutsy", "Claribel Dervla", "Viktor Eka", "Nova Hogarth"]
+# Voices assigned to detected speakers (round-robin). Chosen by audition:
+# two distinct males (Viktor Eka, Andrew Chipper) for the two hosts, plus alternates.
+voice_pool         = ["Viktor Eka", "Andrew Chipper", "Craig Gutsy", "Damien Black"]
 
 [paths]
 cache   = "cache"
@@ -42,8 +42,9 @@ bucket          = "polyglot-media"
 
 [defaults]
 clip_seconds      = 0        # 0 = full episode; >0 = trim (handy for testing)
-diarize           = true     # label speakers -> assign distinct voices (1 voice if solo)
-diarize_threshold = 0.5      # speaker-split cosine distance (lower => more speakers)
+diarize           = true     # label speakers -> assign distinct voices
+num_speakers      = 3        # expected speakers: PTI = opening ad + 2 hosts (1 = solo; 0 = auto)
+diarize_threshold = 0.5      # cosine distance for auto-detect mode (num_speakers = 0 only)
 temperature       = 0.3      # translation sampler temp (0.0 = greedy/deterministic)
 max_tokens        = 512      # per-segment translation cap
 gap_ms            = 200      # silence inserted between synthesized segments
