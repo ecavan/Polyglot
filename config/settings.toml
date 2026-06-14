@@ -15,21 +15,30 @@ tts_backend        = "xtts"                               # "xtts" | "piper"
 tts_device         = "cpu"                                # XTTS on Apple Silicon: MUST be "cpu"
 
 [tts]
-# "self" = clone each detected speaker's own voice from the episode audio (hosts keep
-# their real timbre); "pool" = use the built-in voice_pool below.
-voice_mode         = "self"
-# XTTS inference params (lower-level; tts.tts() ignores these). Higher temperature /
-# lower repetition_penalty => more expressive, less monotone (but >0.9 temp risks artifacts).
-# With self-cloning, expressiveness comes from the hosts' own prosody, so keep sampling
-# stable — high temperature + low repetition_penalty makes XTTS ramble/hallucinate.
-temperature        = 0.75
-repetition_penalty = 6.0
-top_p              = 0.85
+# "pool" = built-in voice_pool (reliable); "self" = clone each speaker from the episode
+# (only clones speakers with >=8s clean audio, else falls back to the pool).
+voice_mode         = "pool"
+# XTTS inference params (lower-level; tts.tts() ignores these). Higher temperature =
+# more expressive. Built-in voices stay stable at 0.85; cloned voices need ~0.75. >0.9 risks artifacts.
+temperature        = 0.85
+repetition_penalty = 5.0
+top_p              = 0.9
 length_penalty     = 1.0
 speed              = 1.0
 # Voices assigned to detected speakers (round-robin). Chosen by audition:
 # two distinct males (Viktor Eka, Andrew Chipper) for the two hosts, plus alternates.
 voice_pool         = ["Viktor Eka", "Andrew Chipper", "Craig Gutsy", "Damien Black"]
+
+[separation]
+# Demucs: split the episode into clean speech (for transcription/diarization) + a
+# music/SFX bed that gets mixed back under the French dub.
+enabled = true
+device  = "cpu"        # Demucs has no MPS support on Apple Silicon; CPU only
+segment = 7            # chunk length (s); htdemucs Transformer max is 7.8
+
+[mix]
+bed      = true        # mix the music/SFX bed under the dubbed speech
+bed_gain = 0.3         # bed level under speech (~-10 dB) for intelligibility
 
 [paths]
 cache   = "cache"

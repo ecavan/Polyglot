@@ -17,6 +17,8 @@ def _settings(tmp_path) -> Settings:
         tts_length_penalty=1.0, tts_speed=1.0,
         voice_pool=["Damien Black", "Claribel Dervla"],
         num_speakers=2, diarize_threshold=0.6,
+        separate_enabled=False, separate_device="cpu", separate_segment=15,
+        mix_bed=False, bed_gain=0.3,
         cache_dir=tmp_path / "cache", output_dir=tmp_path / "output",
         voices_dir=tmp_path / "voices", prompts_dir=tmp_path / "prompts",
         state_path=tmp_path / "state.json",
@@ -34,6 +36,7 @@ def test_process_episode_writes_outputs(tmp_path, monkeypatch):
     ep = Episode(guid="g1", title="Ep 1", published=None, media_url="http://x/ep.mp3")
 
     monkeypatch.setattr(pipeline.download, "fetch_audio", lambda *a, **k: tmp_path / "in.wav")
+    monkeypatch.setattr(pipeline.download, "to_16k_mono", lambda *a, **k: tmp_path / "in16.wav")
 
     def fake_transcribe(wav, settings):
         return [new_segment(0, 0, 1, "Hello"), new_segment(1, 1, 2, "Bye")]

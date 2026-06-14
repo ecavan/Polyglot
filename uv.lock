@@ -356,6 +356,24 @@ wheels = [
 ]
 
 [[package]]
+name = "demucs-infer"
+version = "4.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "einops" },
+    { name = "julius" },
+    { name = "openunmix" },
+    { name = "pyyaml" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3b/a0/4a3d448ed7c574f363078d4b729a159182e5d4bc92e802ce72284f8fd9b3/demucs_infer-4.1.3.tar.gz", hash = "sha256:0247ce710d3f2e5b1c1fd25656ca26068f70941674e75f805ce867a41c12b97b", size = 53630, upload-time = "2026-03-21T07:15:03.13Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/aa/8e/2aafc62ad6967caa4339e55013ca10ee0045914b7c28011f625b4fa30020/demucs_infer-4.1.3-py3-none-any.whl", hash = "sha256:a9d37b5a8859a08fc3f7b32bdfa9fe7afa3c200137056b81fe9c682bd33cb339", size = 69923, upload-time = "2026-03-21T07:15:01.511Z" },
+]
+
+[[package]]
 name = "docopt"
 version = "0.6.2"
 source = { registry = "https://pypi.org/simple" }
@@ -585,6 +603,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/41/f2/d34e8b3a08a9cc79a50b2208a93dce981fe615b64d5a4d4abee421d898df/joblib-1.5.3.tar.gz", hash = "sha256:8561a3269e6801106863fd0d6d84bb737be9e7631e33aaed3fb9ce5953688da3", size = 331603, upload-time = "2025-12-15T08:41:46.427Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7b/91/984aca2ec129e2757d1e4e3c81c3fcda9d0f85b74670a094cc443d9ee949/joblib-1.5.3-py3-none-any.whl", hash = "sha256:5fc3c5039fc5ca8c0276333a188bbd59d6b7ab37fe6632daa76bc7f9ec18e713", size = 309071, upload-time = "2025-12-15T08:41:44.973Z" },
+]
+
+[[package]]
+name = "julius"
+version = "0.2.8"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "torch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1d/c6/5c2aea2b11ead1680bb5b17c996def31f8ccade471cada37cdb93855e06f/julius-0.2.8.tar.gz", hash = "sha256:d691e651200930affea4f6c849c26e95fec846087281ae3d1a7757eac90253d5", size = 48081, upload-time = "2026-06-03T16:05:34.52Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/86/43/efdb0bcb07c47826fa55857cec0deb743f74cd83b6ba5ec9e413505a72e6/julius-0.2.8-py3-none-any.whl", hash = "sha256:6891235cbc355e629d839f87489bff8ca46e57a0e7cc35abb909c7a2aa538c25", size = 21819, upload-time = "2026-06-03T16:05:33.443Z" },
 ]
 
 [[package]]
@@ -1110,6 +1140,21 @@ wheels = [
 ]
 
 [[package]]
+name = "openunmix"
+version = "1.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/42/ef/4ad54e3ecb1e89f7f7bdb4c7b751e43754e892d3c32a8550e5d0882565df/openunmix-1.3.0.tar.gz", hash = "sha256:cc9245ce728700f5d0b72c67f01be4162777e617cdc47f9b035963afac180fc8", size = 45889, upload-time = "2024-04-16T11:10:47.121Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/43/37/320afd9458abb186f09a5183f36e48829df7151821bf887f272a63b2584d/openunmix-1.3.0-py3-none-any.whl", hash = "sha256:e893ae22c5b8001a6107022499c2587b70d5c2e4777cc7c9ed6272b68a69534e", size = 40047, upload-time = "2024-04-16T11:10:45.107Z" },
+]
+
+[[package]]
 name = "packaging"
 version = "26.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1162,6 +1207,7 @@ source = { editable = "." }
 dependencies = [
     { name = "boto3" },
     { name = "coqui-tts", extra = ["codec"] },
+    { name = "demucs-infer" },
     { name = "feedgen" },
     { name = "feedparser" },
     { name = "mlx" },
@@ -1186,6 +1232,7 @@ dev = [
 requires-dist = [
     { name = "boto3" },
     { name = "coqui-tts", extras = ["codec"] },
+    { name = "demucs-infer", specifier = ">=4.1.3" },
     { name = "feedgen" },
     { name = "feedparser" },
     { name = "mlx" },

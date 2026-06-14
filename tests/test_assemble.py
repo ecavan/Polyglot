@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from polyglot.assemble import build_timeline, concat_audio
+from polyglot.assemble import build_timeline, concat_audio, mix_speech_and_bed
 from polyglot.tts import SR
 from polyglot.segments import new_segment
 
@@ -33,3 +33,21 @@ def test_concat_audio_inserts_silence(tmp_path: Path):
     full = concat_audio(segs, gap_ms=200)
     gap_samples = int(0.2 * SR)
     assert len(full) == SR + gap_samples + SR * 2 + gap_samples
+
+
+def test_mix_speech_and_bed_pads_and_clamps():
+    speech = np.ones(100, dtype=np.float32) * 0.8
+    bed = np.ones(60, dtype=np.float32)            # shorter -> padded
+    mixed = mix_speech_and_bed(speech, bed, bed_gain=0.3)
+    assert len(mixed) == 100
+    # first 60 samples: 0.8 + 0.3*1.0 = 1.1 -> clamped via /peak to <= 1.0
+    assert float(np.max(np.abs(mixed))) <= 1.0 + 1e-6
+    # tail (padded bed = 0) should be just the speech, scaled by the same peak factor
+    assert mixed[80] < mixed[0]  # tail (0.8/peak) quieter than head (1.1/peak)
+
+
+def test_mix_speech_and_bed_truncates_long_bed():
+    speech = np.zeros(50, dtype=np.float32)
+    bed = np.ones(200, dtype=np.float32)
+    mixed = mix_speech_and_bed(speech, bed, bed_gain=0.5)
+    assert len(mixed) == 50

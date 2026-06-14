@@ -30,6 +30,12 @@ class Settings:
     # diarization
     num_speakers: int
     diarize_threshold: float
+    # source separation + music-bed mixing
+    separate_enabled: bool
+    separate_device: str
+    separate_segment: int
+    mix_bed: bool
+    bed_gain: float
     # paths
     cache_dir: Path
     output_dir: Path
@@ -76,6 +82,8 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         d = tomllib.load(f)
     m, p, h, df = d["models"], d["paths"], d["hosting"], d["defaults"]
     tts = d.get("tts", {})
+    sep = d.get("separation", {})
+    mix = d.get("mix", {})
     return Settings(
         transcribe_backend=m["transcribe_backend"],
         mlx_whisper_repo=m["mlx_whisper_repo"],
@@ -86,16 +94,21 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         ollama_url=m["ollama_url"],
         tts_backend=m["tts_backend"],
         tts_device=m["tts_device"],
-        voice_mode=tts.get("voice_mode", "self"),
-        tts_temperature=tts.get("temperature", 0.75),
-        tts_repetition_penalty=tts.get("repetition_penalty", 6.0),
-        tts_top_p=tts.get("top_p", 0.85),
+        voice_mode=tts.get("voice_mode", "pool"),
+        tts_temperature=tts.get("temperature", 0.85),
+        tts_repetition_penalty=tts.get("repetition_penalty", 5.0),
+        tts_top_p=tts.get("top_p", 0.9),
         tts_length_penalty=tts.get("length_penalty", 1.0),
         tts_speed=tts.get("speed", 1.0),
         voice_pool=tts.get("voice_pool", ["Viktor Eka", "Andrew Chipper",
                                           "Craig Gutsy", "Damien Black"]),
         num_speakers=df.get("num_speakers", 2),
         diarize_threshold=df.get("diarize_threshold", 0.5),
+        separate_enabled=sep.get("enabled", True),
+        separate_device=sep.get("device", "cpu"),
+        separate_segment=sep.get("segment", 7),
+        mix_bed=mix.get("bed", True),
+        bed_gain=mix.get("bed_gain", 0.3),
         cache_dir=Path(p["cache"]),
         output_dir=Path(p["output"]),
         voices_dir=Path(p["voices"]),
