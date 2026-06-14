@@ -646,11 +646,18 @@ reference) and set `voice = "<name>"`. Omit `voice` for a built-in voice.
 
 ---
 
-## 14. Open items (decide before/within the relevant phase)
+## 14. Open items — resolved 2026-06-14
 
-- **R2 specifics (Phase 3):** account ID, bucket name, and whether to use the r2.dev domain
-  or a custom CNAME for `public_base_url`.
-- **Reference voice for cloning (Phase 1/2):** a clean Québécois-French clip (≥6 s) for
-  `voices/fr_montreal.wav`, or start with a built-in speaker.
-- **Show list (Phase 1):** confirm the first real feed URL(s) to target (the `pti-fr` URL is
-  a placeholder).
+Setup details verified and captured in `docs/setup/setup-notes.md`:
+
+- **First feed (Phase 1): RESOLVED.** PTI (ESPN) = `https://feeds.megaphone.fm/ESP7239282233`
+  — fetch-verified: valid RSS, direct `audio/mpeg` enclosures. Backups: ESPN Daily
+  `ESP8348692127`, First Take `ESP1539938155`. Already in `config/shows.toml`.
+- **Reference voice (Phase 1/2): RESOLVED (recommendation).** No clean free downloadable
+  Québécois clip exists (Wikimedia options are 0.97 s or a music track). Phase 1 uses the
+  built-in XTTS speaker (no clip); for cloning, record ~20–30 s yourself (Option B in setup
+  notes), or assemble CC0 Common Voice Canadian-French clips.
+- **R2 specifics (Phase 3): RESOLVED (procedure).** Free tier, no credit card, $0 egress;
+  use the free r2.dev public URL for `public_base_url`. Account ID / bucket / keys are created
+  by the user following setup notes §3; env vars `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+  `R2_SECRET_ACCESS_KEY`.
