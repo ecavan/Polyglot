@@ -53,6 +53,7 @@ class Settings:
     bucket: str
     # defaults
     clip_seconds: int
+    max_video_minutes: int
     diarize: bool
     temperature: float
     max_tokens: int
@@ -129,6 +130,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         public_base_url=h["public_base_url"],
         bucket=h["bucket"],
         clip_seconds=df["clip_seconds"],
+        max_video_minutes=df.get("max_video_minutes", 60),
         diarize=df["diarize"],
         temperature=df["temperature"],
         max_tokens=df["max_tokens"],

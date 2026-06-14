@@ -3,7 +3,7 @@ import hashlib
 import sys
 
 from polyglot import feeds, pipeline
-from polyglot.config import build_job
+from polyglot.config import build_job, load_settings, JobSpec
 from polyglot.feeds import Episode
 
 
@@ -55,6 +55,28 @@ def cmd_run(show_id: str, latest: bool, url: str | None, file: str | None,
     return 1
 
 
+def cmd_video(url: str, lang: str, clip_seconds: int | None, speakers: int | None) -> int:
+    settings = load_settings()
+    if clip_seconds is not None:
+        settings.clip_seconds = clip_seconds
+    settings.num_speakers = speakers if speakers is not None else 1  # solo narrator by default
+    prompt = settings.prompts_dir / f"{lang}.txt"
+    if not prompt.is_file():
+        print(f"error: prompt for lang '{lang}' missing: {prompt}", file=sys.stderr)
+        return 1
+    job = JobSpec("video", "Video", url, "youtube", lang, prompt, [], settings)
+    guid = "yt-" + hashlib.sha1(url.encode()).hexdigest()[:12]
+    ep = Episode(guid=guid, title="(video)", published=None, media_url=url)
+    result = pipeline.process_video(job, ep, settings)
+    if result["ok"]:
+        print(f"OK  mp4: {result['mp4']}")
+        print(f"    srt: {result['srt']}")
+        print(f"    duration: {result['duration']:.1f}s")
+        return 0
+    print(f"FAILED: {result['error']}", file=sys.stderr)
+    return 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="polyglot")
     sub = parser.add_subparsers(dest="command")
@@ -69,12 +91,20 @@ def main() -> int:
     p_run.add_argument("--file")
     p_run.add_argument("--clip-seconds", type=int, default=None)
 
+    p_video = sub.add_parser("video", help="dub a YouTube video -> mp4")
+    p_video.add_argument("url")
+    p_video.add_argument("--lang", default="fr")
+    p_video.add_argument("--clip-seconds", type=int, default=None)
+    p_video.add_argument("--speakers", type=int, default=None)
+
     args = parser.parse_args()
 
     if args.command == "show":
         return cmd_show(args.show_id)
     if args.command == "run":
         return cmd_run(args.show_id, args.latest, args.url, args.file, args.clip_seconds)
+    if args.command == "video":
+        return cmd_video(args.url, args.lang, args.clip_seconds, args.speakers)
     parser.print_help()
     return 0
 
