@@ -4,9 +4,20 @@ import numpy as np
 import soundfile as sf
 
 from polyglot.tts import (
-    synthesize_with, assign_voices, select_reference_spans, expected_max_seconds, SR, CLONE,
+    synthesize_with, assign_voices, assign_voices_by_size, select_reference_spans,
+    expected_max_seconds, SR, CLONE,
 )
 from polyglot.segments import new_segment
+
+
+def test_assign_voices_by_size_dominant_first():
+    segs = []
+    for i in range(3):
+        s = new_segment(i, 0, 1, "x"); s["speaker"] = "HOST"; segs.append(s)
+    s = new_segment(3, 0, 1, "y"); s["speaker"] = "AD"; segs.append(s)
+    m = assign_voices_by_size(segs, ["Pierre", "Amelie", "Marie"])
+    assert m["HOST"] == "Pierre"   # most segments -> first voice (male)
+    assert m["AD"] == "Amelie"
 
 
 def test_synthesize_with_fake_writes_clips_and_durations(tmp_path: Path):

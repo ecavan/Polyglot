@@ -186,12 +186,19 @@ def _xtts_engine(segments, job, settings, out_dir, source_wav=None) -> Callable[
     return synth
 
 
+def assign_voices_by_size(segments: list[dict], voices: list[str]) -> dict:
+    """Assign pool voices to speakers ordered by how much they speak, so the
+    dominant speaker (the host banter) gets voices[0] (e.g. Pierre, male)."""
+    from collections import Counter
+    counts = Counter(seg.get("speaker") or "SPEAKER_00" for seg in segments)
+    ordered = [spk for spk, _ in counts.most_common()]
+    return {spk: voices[i % len(voices)] for i, spk in enumerate(ordered)}
+
+
 def _orpheus_engine(segments, settings) -> Callable[[dict], np.ndarray]:
     from polyglot import orpheus_tts
     base = orpheus_tts.build_synth(settings)
-    voices = settings.orpheus_voices
-    speakers = sorted({seg.get("speaker") or "SPEAKER_00" for seg in segments})
-    voice_for = {spk: voices[i % len(voices)] for i, spk in enumerate(speakers)}
+    voice_for = assign_voices_by_size(segments, settings.orpheus_voices)
 
     def synth(seg: dict) -> np.ndarray:
         spk = seg.get("speaker") or "SPEAKER_00"
