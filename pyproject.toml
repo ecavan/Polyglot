@@ -7,7 +7,11 @@ dependencies = [
     "mlx",
     "mlx-lm",
     "mlx-whisper",
-    "coqui-tts",
+    "coqui-tts[codec]",
+    "torchaudio",
+    # coqui-tts 0.27.5 imports isin_mps_friendly from transformers.pytorch_utils,
+    # which was removed in transformers 5.x. Pin to the 4.x line.
+    "transformers>=4.57,<5",
     "feedparser",
     "requests",
     "soundfile",

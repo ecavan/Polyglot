@@ -108,7 +108,9 @@ dependencies = [
     "mlx",
     "mlx-lm",
     "mlx-whisper",
-    "coqui-tts",
+    "coqui-tts[codec]",
+    "torchaudio",
+    "transformers>=4.57,<5",
     "feedparser",
     "requests",
     "soundfile",
@@ -137,6 +139,13 @@ testpaths = ["tests"]
 ```
 
 > `requires-python` is capped `<3.13` because mlx-whisper breaks on 3.13.
+>
+> **XTTS dependency notes (learned during execution, torch 2.12 on Apple Silicon):**
+> - `coqui-tts[codec]` — torch ≥2.9 needs `torchcodec` for audio I/O (the `codec` extra).
+> - `torchaudio` — imported by XTTS's model code; not pulled transitively.
+> - `transformers>=4.57,<5` — coqui-tts 0.27.5 imports `isin_mps_friendly` from
+>   `transformers.pytorch_utils`, removed in transformers 5.x. Pinning <5 also pins
+>   `mlx-lm` to 0.29.x (same stable `load`/`generate`/`make_sampler` API — fine).
 
 - [ ] **Step 3: Create the package + cli stub**
 
