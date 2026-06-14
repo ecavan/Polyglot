@@ -19,8 +19,12 @@ def vtt_timestamp(seconds: float) -> str:
     return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
 
 
-def _lines_for(seg: dict, bilingual: bool) -> list[str]:
-    prefix = f"{seg['speaker']}: " if seg.get("speaker") else ""
+def _multi_speaker(segments: list[dict]) -> bool:
+    return len({s.get("speaker") for s in segments if s.get("speaker")}) > 1
+
+
+def _lines_for(seg: dict, bilingual: bool, show_speaker: bool) -> list[str]:
+    prefix = f"{seg['speaker']}: " if (show_speaker and seg.get("speaker")) else ""
     lines = [f"{prefix}{seg['translation']}"]
     if bilingual:
         lines.append(seg["text"])
@@ -28,17 +32,19 @@ def _lines_for(seg: dict, bilingual: bool) -> list[str]:
 
 
 def build_srt(segments: list[dict], timeline: list[tuple[float, float]], bilingual: bool) -> str:
+    show_speaker = _multi_speaker(segments)   # only label speakers when there's more than one
     blocks = []
     for n, (seg, (start, end)) in enumerate(zip(segments, timeline), start=1):
-        body = "\n".join(_lines_for(seg, bilingual))
+        body = "\n".join(_lines_for(seg, bilingual, show_speaker))
         blocks.append(f"{n}\n{srt_timestamp(start)} --> {srt_timestamp(end)}\n{body}\n")
     return "\n".join(blocks)
 
 
 def build_vtt(segments: list[dict], timeline: list[tuple[float, float]], bilingual: bool) -> str:
+    show_speaker = _multi_speaker(segments)
     blocks = ["WEBVTT\n"]
     for seg, (start, end) in zip(segments, timeline):
-        body = "\n".join(_lines_for(seg, bilingual))
+        body = "\n".join(_lines_for(seg, bilingual, show_speaker))
         blocks.append(f"{vtt_timestamp(start)} --> {vtt_timestamp(end)}\n{body}\n")
     return "\n".join(blocks)
 

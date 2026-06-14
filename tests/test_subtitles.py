@@ -36,6 +36,18 @@ def test_build_srt_target_only_excludes_source():
     assert "Hello" not in out
 
 
+def test_speaker_prefix_only_when_multiple_speakers():
+    tl = [(0.0, 1.0), (1.2, 2.0)]
+    one = _segs()
+    for s in one:
+        s["speaker"] = "SPEAKER_00"          # solo -> no prefix
+    assert "SPEAKER_00:" not in build_srt(one, tl, bilingual=True)
+    two = _segs()
+    two[0]["speaker"] = "SPEAKER_00"
+    two[1]["speaker"] = "SPEAKER_01"          # multi -> prefixes shown
+    assert "SPEAKER_00:" in build_srt(two, tl, bilingual=True)
+
+
 def test_write_subs_creates_four_files(tmp_path: Path):
     tl = [(0.0, 1.0), (1.2, 2.0)]
     write_subs(_segs(), tl, out_dir=tmp_path, show_id="s", ep_id="e")
