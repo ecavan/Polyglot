@@ -1,4 +1,5 @@
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -17,6 +18,7 @@ class EpisodeAudio:
 
 
 def build_timeline(segments: list[dict], gap_ms: int) -> list[tuple[float, float]]:
+    """Cumulative (start,end) per segment on the DUBBED clock (natural speed + gaps)."""
     gap = gap_ms / 1000.0
     timeline: list[tuple[float, float]] = []
     t = 0.0
@@ -28,8 +30,6 @@ def build_timeline(segments: list[dict], gap_ms: int) -> list[tuple[float, float
 
 
 def mix_speech_and_bed(speech: np.ndarray, bed: np.ndarray, bed_gain: float) -> np.ndarray:
-    """Overlay a (ducked) music bed under the speech. Bed is padded/truncated to the
-    speech length; the sum is clamped to avoid clipping."""
     n = len(speech)
     if len(bed) < n:
         bed = np.pad(bed, (0, n - len(bed)))
@@ -50,20 +50,22 @@ def _audio_duration(path: Path) -> float:
     return float(out.strip())
 
 
-def _stretch_bed_to(bed_path: Path, target_seconds: float, out_path: Path) -> Path:
-    """Pitch-preserving stretch of the music bed to ~target_seconds, mono @ SR.
-    tempo<1 lengthens; clamped to rubberband's safe range."""
-    dur = _audio_duration(bed_path)
-    tempo = max(0.5, min(2.0, dur / target_seconds)) if target_seconds > 0 else 1.0
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", str(bed_path), "-filter:a", f"rubberband=tempo={tempo}",
-         "-ac", "1", "-ar", str(SR), str(out_path)],
-        check=True,
-    )
-    return out_path
+def _rubberband(wav: np.ndarray, factor: float) -> np.ndarray:
+    """Pitch-preserving tempo change (factor>1 = faster/shorter) via ffmpeg rubberband."""
+    if abs(factor - 1.0) < 0.02 or len(wav) < 2048:
+        return wav
+    factor = max(0.5, min(2.0, factor))
+    with tempfile.TemporaryDirectory() as td:
+        src, dst = Path(td) / "i.wav", Path(td) / "o.wav"
+        sf.write(str(src), wav, SR, subtype="FLOAT")
+        subprocess.run(["ffmpeg", "-y", "-i", str(src), "-filter:a", f"rubberband=tempo={factor}",
+                        "-ar", str(SR), "-ac", "1", str(dst)], check=True, capture_output=True)
+        out, _ = sf.read(str(dst), dtype="float32")
+    return np.asarray(out, dtype=np.float32)
 
 
 def concat_audio(segments: list[dict], gap_ms: int) -> np.ndarray:
+    """Dubbed-timeline track: segments back-to-back with gap_ms silence (podcasts)."""
     gap = np.zeros(int(gap_ms / 1000.0 * SR), dtype=np.float32)
     parts: list[np.ndarray] = []
     for seg in segments:
@@ -75,27 +77,82 @@ def concat_audio(segments: list[dict], gap_ms: int) -> np.ndarray:
     return np.concatenate(parts)
 
 
+def build_synced_track(segments: list[dict], source_duration: float, max_stretch: float = 1.8) -> np.ndarray:
+    """Original-timeline track (video): place each French clip at its source start time,
+    speeding it up (capped) when it's too long for its slot so it tracks the picture.
+    Clips that fit are left at natural speed (a short clip just leaves the original pause)."""
+    total = max(1, int(source_duration * SR))
+    track = np.zeros(total, dtype=np.float32)
+    cursor = 0
+    for seg in segments:
+        wav, _sr = sf.read(seg["audio_path"], dtype="float32")
+        wav = np.asarray(wav, dtype=np.float32)
+        slot = max(0.0, seg["end"] - seg["start"])
+        if slot > 0.05:
+            factor = (len(wav) / SR) / slot
+            if factor > 1.0:                       # too long for the slot -> speed up to fit
+                wav = _rubberband(wav, min(factor, max_stretch))
+        pos = max(int(seg["start"] * SR), cursor)  # anchor to source time; never overlap previous
+        end = pos + len(wav)
+        if end > len(track):
+            track = np.concatenate([track, np.zeros(end - len(track), dtype=np.float32)])
+        track[pos:end] += wav
+        cursor = end
+    return track
+
+
+def _resample_bed(bed_path: Path, out: Path) -> Path:
+    subprocess.run(["ffmpeg", "-y", "-i", str(bed_path), "-ac", "1", "-ar", str(SR), str(out)],
+                   check=True, capture_output=True)
+    return out
+
+
 def assemble(segments: list[dict], out_mp3: Path, settings: Settings,
-            bed_path: Path | None = None) -> EpisodeAudio:
+            bed_path: Path | None = None, sync_to_source: bool = False,
+            source_duration: float | None = None) -> EpisodeAudio:
     out_mp3.parent.mkdir(parents=True, exist_ok=True)
-    full = concat_audio(segments, settings.gap_ms)
+    if sync_to_source and source_duration:
+        full = build_synced_track(segments, source_duration)
+        timeline = [(s["start"], s["end"]) for s in segments]   # subs align to source/video time
+    else:
+        full = concat_audio(segments, settings.gap_ms)
+        timeline = build_timeline(segments, settings.gap_ms)
+
     if bed_path is not None and settings.mix_bed:
-        stretched = out_mp3.with_suffix(".bed.wav")
-        _stretch_bed_to(bed_path, len(full) / SR, stretched)
-        bed, _sr = sf.read(str(stretched), dtype="float32")
+        bedwav = out_mp3.with_suffix(".bed.wav")
+        if sync_to_source:
+            _resample_bed(bed_path, bedwav)                      # original timing, no stretch
+        else:
+            _stretch_bed_to(bed_path, len(full) / SR, bedwav)    # stretch to dub length
+        bed, _sr = sf.read(str(bedwav), dtype="float32")
         if bed.ndim > 1:
             bed = bed.mean(axis=1)
         full = mix_speech_and_bed(full, bed, settings.bed_gain)
-        stretched.unlink(missing_ok=True)
+        bedwav.unlink(missing_ok=True)
+
     tmp_wav = out_mp3.with_suffix(".tmp.wav")
     sf.write(str(tmp_wav), full, SR, subtype="FLOAT")
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", str(tmp_wav), "-c:a", "libmp3lame", "-b:a", "128k", str(out_mp3)],
-        check=True,
-    )
+    try:  # loudness-normalize so the dub is comfortably audible
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(tmp_wav), "-af", "loudnorm=I=-16:TP=-1.5:LRA=11",
+             "-c:a", "libmp3lame", "-b:a", "128k", str(out_mp3)],
+            check=True, capture_output=True,
+        )
+    except subprocess.CalledProcessError:  # loudnorm can fail on near-silent audio
+        subprocess.run(
+            ["ffmpeg", "-y", "-i", str(tmp_wav), "-c:a", "libmp3lame", "-b:a", "128k", str(out_mp3)],
+            check=True,
+        )
     tmp_wav.unlink(missing_ok=True)
-    return EpisodeAudio(
-        duration=len(full) / SR,
-        byte_length=out_mp3.stat().st_size,
-        timeline=build_timeline(segments, settings.gap_ms),
+    return EpisodeAudio(duration=len(full) / SR, byte_length=out_mp3.stat().st_size, timeline=timeline)
+
+
+def _stretch_bed_to(bed_path: Path, target_seconds: float, out_path: Path) -> Path:
+    dur = _audio_duration(bed_path)
+    tempo = max(0.5, min(2.0, dur / target_seconds)) if target_seconds > 0 else 1.0
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(bed_path), "-filter:a", f"rubberband=tempo={tempo}",
+         "-ac", "1", "-ar", str(SR), str(out_path)],
+        check=True, capture_output=True,
     )
+    return out_path

@@ -13,9 +13,11 @@ def _safe_id(guid: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]", "_", guid)[:120]
 
 
-def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio):
+def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio,
+              sync_to_source=False, source_duration=None):
     """Shared dub stages (podcast + video): separate -> transcribe -> diarize ->
-    merge -> translate -> synthesize -> assemble (with music bed). Returns (segments, EpisodeAudio)."""
+    merge -> translate -> synthesize -> assemble (with music bed). Returns (segments, EpisodeAudio).
+    sync_to_source=True (video) fits each line to its original time slot so audio tracks the picture."""
     bed = None
     speech_src = src_audio
     if settings.separate_enabled:
@@ -27,7 +29,8 @@ def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio):
     segments = segmod.merge_short_segments(segments)             # fuller phrases -> stable TTS
     segments = translate.translate(segments, job, settings)
     segments = tts.synthesize(segments, job, settings, work / "segments", source_wav=speech_src)
-    audio = assemble.assemble(segments, out_audio, settings, bed_path=bed)
+    audio = assemble.assemble(segments, out_audio, settings, bed_path=bed,
+                              sync_to_source=sync_to_source, source_duration=source_duration)
     return segments, audio
 
 
@@ -61,7 +64,9 @@ def process_video(job: JobSpec, episode: Episode, settings: Settings) -> dict:
             episode.media_url, work, settings.clip_seconds, settings.max_video_minutes
         )
         src_audio = download.extract_audio(video, work)
-        segments, audio = dub_audio(src_audio, job, settings, work, work / "dub.mp3")
+        source_duration = assemble._audio_duration(src_audio)   # = video length
+        segments, audio = dub_audio(src_audio, job, settings, work, work / "dub.mp3",
+                                    sync_to_source=True, source_duration=source_duration)
         publish_video.mux(video, work / "dub.mp3", out_mp4)
         subtitles.write_subs(segments, audio.timeline, subs_dir, job.show_id, ep_id)
         return {

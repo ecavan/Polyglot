@@ -60,6 +60,7 @@ def cmd_video(url: str, lang: str, clip_seconds: int | None, speakers: int | Non
     if clip_seconds is not None:
         settings.clip_seconds = clip_seconds
     settings.num_speakers = speakers if speakers is not None else 1  # solo narrator by default
+    settings.tts_speed = 1.0  # video fits each line to its slot in assemble; no global speed-up
     prompt = settings.prompts_dir / f"{lang}.txt"
     if not prompt.is_file():
         print(f"error: prompt for lang '{lang}' missing: {prompt}", file=sys.stderr)
