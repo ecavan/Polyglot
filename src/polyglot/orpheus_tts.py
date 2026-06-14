@@ -64,10 +64,12 @@ def build_synth(settings: Settings) -> Callable[[str, str], np.ndarray]:
         if not codes:
             return np.zeros(0, dtype=np.float32)
         l1, l2, l3 = redistribute(codes)
+        # Clamp to SNAC's codebook range [0, 4095]; higher temperatures occasionally emit
+        # out-of-range codes which would crash the embedding lookup.
         ct = [
-            torch.tensor([l1], device=device),
-            torch.tensor([l2], device=device),
-            torch.tensor([l3], device=device),
+            torch.tensor([l1], device=device).clamp_(0, 4095),
+            torch.tensor([l2], device=device).clamp_(0, 4095),
+            torch.tensor([l3], device=device).clamp_(0, 4095),
         ]
         with torch.inference_mode():
             audio = snac.decode(ct).squeeze().detach().cpu().numpy()
