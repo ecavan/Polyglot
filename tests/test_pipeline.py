@@ -26,8 +26,8 @@ def _settings(tmp_path) -> Settings:
         state_path=tmp_path / "state.json",
         hosting_type="r2", public_base_url="x", bucket="b",
         library_path=tmp_path / "lib", retention_keep=10, retention_max_age_days=7,
-        clip_seconds=0, max_video_minutes=60, diarize=False, temperature=0.3,
-        max_tokens=512, gap_ms=200,
+        clip_seconds=0, max_video_minutes=60, video_speed=1.1, diarize=False,
+        temperature=0.3, max_tokens=512, gap_ms=200,
     )
 
 

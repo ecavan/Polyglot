@@ -1,7 +1,16 @@
 from pathlib import Path
 
-from polyglot.subtitles import srt_timestamp, vtt_timestamp, build_srt, write_subs
+from polyglot.subtitles import srt_timestamp, vtt_timestamp, build_srt, build_ass, write_subs
 from polyglot.segments import new_segment
+
+
+def test_build_ass_side_by_side():
+    tl = [(0.0, 1.0), (1.2, 2.0)]
+    a = new_segment(0, 0, 0, "Hello"); a["translation"] = "Bonjour"
+    out = build_ass([a], tl[:1])
+    assert "Style: FR" in out and "Style: EN" in out      # two styled boxes
+    assert ",FR,," in out and ",EN,," in out               # a dialogue line per language
+    assert "Bonjour" in out and "Hello" in out
 
 
 def test_srt_timestamp():

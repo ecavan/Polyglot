@@ -68,8 +68,8 @@ def process_video(job: JobSpec, episode: Episode, settings: Settings) -> dict:
         segments, audio = dub_audio(src_audio, job, settings, work, work / "dub.mp3",
                                     sync_to_source=True, source_duration=source_duration)
         subtitles.write_subs(segments, audio.timeline, subs_dir, job.show_id, ep_id)
-        bilingual_srt = subs_dir / f"{ep_id}.srt"               # FR + EN per cue, burned in
-        publish_video.mux(video, work / "dub.mp3", out_mp4, subtitle=bilingual_srt)
+        styled_ass = subs_dir / f"{ep_id}.ass"                  # side-by-side FR/EN, burned in
+        publish_video.mux(video, work / "dub.mp3", out_mp4, subtitle=styled_ass)
         return {
             "ok": True, "mp4": str(out_mp4), "srt": str(subs_dir / f"{ep_id}.srt"),
             "duration": audio.duration,

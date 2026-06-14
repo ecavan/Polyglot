@@ -58,6 +58,7 @@ class Settings:
     # defaults
     clip_seconds: int
     max_video_minutes: int
+    video_speed: float
     diarize: bool
     temperature: float
     max_tokens: int
@@ -140,6 +141,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         retention_max_age_days=ret.get("max_age_days", 7),
         clip_seconds=df["clip_seconds"],
         max_video_minutes=df.get("max_video_minutes", 60),
+        video_speed=df.get("video_speed", 1.1),
         diarize=df["diarize"],
         temperature=df["temperature"],
         max_tokens=df["max_tokens"],

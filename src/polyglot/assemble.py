@@ -77,11 +77,12 @@ def concat_audio(segments: list[dict], gap_ms: int) -> np.ndarray:
     return np.concatenate(parts)
 
 
-def build_synced_track(segments: list[dict], source_duration: float,
-                       min_stretch: float = 0.7, max_stretch: float = 1.8) -> np.ndarray:
-    """Original-timeline track (video): place each French clip at its source start time and
-    stretch it (both ways, capped) to FILL its slot — speed up long lines, gently slow short
-    ones — so the French matches the English window and there are no awkward intra-line gaps."""
+def build_synced_track(segments: list[dict], source_duration: float, speed: float = 1.1,
+                       max_stretch: float = 1.8) -> np.ndarray:
+    """Original-timeline track (video): place each French clip at its source start time and,
+    when the French runs longer than its English window, SPEED IT UP (capped) to fit. Short
+    lines keep their natural pace — the slot's leftover time stays as a pause, matching the
+    original speaker. `speed` biases everything ~10% faster so the dub never drags."""
     total = max(1, int(source_duration * SR))
     track = np.zeros(total, dtype=np.float32)
     cursor = 0
@@ -90,8 +91,9 @@ def build_synced_track(segments: list[dict], source_duration: float,
         wav = np.asarray(wav, dtype=np.float32)
         slot = max(0.0, seg["end"] - seg["start"])
         if slot > 0.05 and len(wav):
-            factor = (len(wav) / SR) / slot                 # tempo to make the clip == slot
-            wav = _rubberband(wav, max(min_stretch, min(max_stretch, factor)))
+            factor = (len(wav) / SR) / slot * speed         # >1 = French overruns its slot
+            if factor > 1.0:                                # only compress over-long lines
+                wav = _rubberband(wav, min(max_stretch, factor))
         pos = max(int(seg["start"] * SR), cursor)           # anchor to source time; no overlap
         end = pos + len(wav)
         if end > len(track):
@@ -112,7 +114,7 @@ def assemble(segments: list[dict], out_mp3: Path, settings: Settings,
             source_duration: float | None = None) -> EpisodeAudio:
     out_mp3.parent.mkdir(parents=True, exist_ok=True)
     if sync_to_source and source_duration:
-        full = build_synced_track(segments, source_duration)
+        full = build_synced_track(segments, source_duration, speed=settings.video_speed)
         timeline = [(s["start"], s["end"]) for s in segments]   # subs align to source/video time
     else:
         full = concat_audio(segments, settings.gap_ms)

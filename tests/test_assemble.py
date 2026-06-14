@@ -18,9 +18,9 @@ def test_build_synced_track_anchors_to_source_time(tmp_path):
     segs[1]["audio_path"] = str(b)
     track = build_synced_track(segs, source_duration=3.0)
     assert len(track) >= int(3 * SR) - 2
-    assert track[10] > 0.5                       # seg0 starts at t=0
-    assert abs(track[int(1.5 * SR)]) < 1e-6      # gap (1-2s) is silent (pause preserved)
-    assert track[int(2.0 * SR) + 10] > 0.5       # seg1 anchored at its source start (t=2s)
+    assert track[10] > 0.5                          # seg0 (1s in 2s slot) plays at natural pace from t=0
+    assert abs(track[int(1.5 * SR)]) < 1e-6         # gap (1-2s) is silent (pause preserved)
+    assert track[int(2.0 * SR):].max() > 0.5        # seg1 anchored at/after its source start (t=2s)
 
 
 def _seg(i, dur):

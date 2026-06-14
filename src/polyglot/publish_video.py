@@ -26,10 +26,11 @@ def mux(video_path: Path, audio_path: Path, out_mp4: Path, subtitle: Path | None
     if delta > 0.1:
         vf_parts.append(f"tpad=stop_mode=clone:stop_duration={delta:.3f}")
     if subtitle is not None:
-        vf_parts.append(
-            f"subtitles={_escape_sub(subtitle)}:force_style="
-            "'Fontsize=15,Outline=1,Shadow=0,MarginV=18'"
-        )
+        if str(subtitle).endswith(".ass"):
+            vf_parts.append(f"ass={_escape_sub(subtitle)}")          # styled side-by-side (libass)
+        else:
+            vf_parts.append(f"subtitles={_escape_sub(subtitle)}:force_style="
+                            "'Fontsize=15,Outline=1,Shadow=0,MarginV=18'")
 
     if vf_parts:
         subprocess.run(
