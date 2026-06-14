@@ -3,7 +3,9 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from polyglot.tts import synthesize_with, assign_voices, select_reference_spans, SR, CLONE
+from polyglot.tts import (
+    synthesize_with, assign_voices, select_reference_spans, expected_max_seconds, SR, CLONE,
+)
 from polyglot.segments import new_segment
 
 
@@ -42,6 +44,39 @@ def test_assign_voices_with_clone_uses_clone_for_first():
 def test_assign_voices_wraps_pool():
     m = assign_voices(["SPEAKER_00", "SPEAKER_01", "SPEAKER_02"], ["A"], clone_available=False)
     assert m == {"SPEAKER_00": "A", "SPEAKER_01": "A", "SPEAKER_02": "A"}
+
+
+def test_expected_max_seconds_floor_and_growth():
+    assert expected_max_seconds("Non.") >= 3.0 * 1.6 - 1e-9  # short text hits the floor
+    assert expected_max_seconds("x" * 120) > expected_max_seconds("short")
+
+
+def test_synthesize_with_retries_then_trims_rambling(tmp_path):
+    seg = new_segment(0, 0.0, 1.0, "Bonjour")
+    seg["translation"] = "Bonjour"
+    calls = {"n": 0}
+
+    def long_synth(s):
+        calls["n"] += 1
+        return np.zeros(int(30 * SR), dtype=np.float32)  # always rambles (30s)
+
+    out = synthesize_with([seg], long_synth, tmp_path, max_retries=2)
+    assert calls["n"] == 3  # initial + 2 retries
+    assert out[0]["audio_dur"] <= expected_max_seconds("Bonjour") + 1e-6  # trimmed
+
+
+def test_synthesize_with_keeps_good_audio(tmp_path):
+    seg = new_segment(0, 0.0, 1.0, "Bonjour")
+    seg["translation"] = "Bonjour"
+    calls = {"n": 0}
+
+    def good_synth(s):
+        calls["n"] += 1
+        return np.zeros(int(1 * SR), dtype=np.float32)  # 1s, under cap
+
+    out = synthesize_with([seg], good_synth, tmp_path)
+    assert calls["n"] == 1  # no retry
+    assert abs(out[0]["audio_dur"] - 1.0) < 1e-6
 
 
 def test_select_reference_spans_picks_longest_per_speaker():

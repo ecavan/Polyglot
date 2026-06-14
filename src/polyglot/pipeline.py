@@ -1,7 +1,7 @@
 import re
 import traceback
 
-from polyglot import assemble, diarize, download, separate, subtitles, transcribe, translate, tts
+from polyglot import assemble, diarize, download, segments as segmod, separate, subtitles, transcribe, translate, tts
 from polyglot.config import JobSpec, Settings
 from polyglot.feeds import Episode
 
@@ -26,6 +26,7 @@ def process_episode(job: JobSpec, episode: Episode, settings: Settings) -> dict:
         segments = transcribe.transcribe(wav16, settings)
         if settings.diarize:
             segments = diarize.diarize(wav16, segments, settings)  # label speakers
+        segments = segmod.merge_short_segments(segments)          # fuller phrases -> stable TTS
         segments = translate.translate(segments, job, settings)   # loads LLM, frees it
         segments = tts.synthesize(segments, job, settings, work / "segments", source_wav=speech_src)
         audio = assemble.assemble(segments, out_mp3, settings, bed_path=bed)  # mix music under dub

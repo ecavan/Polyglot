@@ -28,6 +28,14 @@ def assign_voices(speakers: list[str], voice_pool: list[str], clone_available: b
     return mapping
 
 
+def pool_clone_clips(settings: Settings) -> list[Path]:
+    """Curated cloned-voice pool: reference clips dropped in voices/pool/*.wav.
+    If present (and voice_mode='pool'), these are cloned and assigned to speakers
+    round-robin instead of the built-in speakers."""
+    d = settings.voices_dir / "pool"
+    return sorted(d.glob("*.wav")) if d.is_dir() else []
+
+
 def select_reference_spans(segments: list[dict], target_seconds: float = 15.0) -> dict:
     """Per speaker, pick the SINGLE longest contiguous segment as the cloning reference.
 
@@ -66,14 +74,28 @@ def build_speaker_references(source_wav: Path, segments: list[dict], out_dir: Pa
     return refs
 
 
+def expected_max_seconds(text: str) -> float:
+    """Generous upper bound on how long a clean synthesis of `text` should be.
+    Used to catch XTTS rambling/hallucination (esp. cloned voices on short text)."""
+    return max(3.0, len(text) / 12.0 + 1.0) * 1.6
+
+
 def synthesize_with(
     segments: list[dict],
     synth: Callable[[dict], np.ndarray],
     out_dir: Path,
+    max_retries: int = 2,
 ) -> list[dict]:
     out_dir.mkdir(parents=True, exist_ok=True)
     for seg in segments:
+        cap = expected_max_seconds(seg["translation"]) * SR
         wav = np.asarray(synth(seg), dtype=np.float32)
+        tries = 0
+        while len(wav) > cap and tries < max_retries:    # rambled — retry (XTTS is stochastic)
+            wav = np.asarray(synth(seg), dtype=np.float32)
+            tries += 1
+        if len(wav) > cap:                                # still long — trim trailing garbage
+            wav = wav[: int(cap)]
         path = out_dir / f"seg_{seg['index']:04d}.wav"
         sf.write(str(path), wav, SR, subtype="FLOAT")
         seg["audio_path"] = str(path)
@@ -97,17 +119,26 @@ def _xtts_engine(segments, job, settings, out_dir, source_wav=None) -> Callable[
     if settings.voice_mode == "self" and source_wav is not None:
         refs = build_speaker_references(source_wav, segments, out_dir / "refs")
 
-    # Build conditioning latents once per speaker.
+    clone_clips = pool_clone_clips(settings) if settings.voice_mode == "pool" else []
+
+    # Build conditioning latents once per speaker (cache repeated clone clips).
     latents: dict[str, tuple] = {}
+    clip_cache: dict[str, tuple] = {}
     pool_i = 0
     for i, spk in enumerate(uniq):
-        if spk in refs:                                            # self-clone
+        if spk in refs:                                            # self-clone from episode
             gpt, spe = model.get_conditioning_latents(audio_path=[str(refs[spk])])
-        elif settings.voice_mode != "self" and job.voice_refs and i == 0:  # user clip
+        elif settings.voice_mode != "self" and job.voice_refs and i == 0:  # per-show user clip
             gpt, spe = model.get_conditioning_latents(
                 audio_path=[str(p) for p in job.voice_refs]
             )
-        else:                                                      # built-in pool fallback
+        elif clone_clips:                                          # curated cloned voice pool
+            clip = str(clone_clips[pool_i % len(clone_clips)])
+            pool_i += 1
+            if clip not in clip_cache:
+                clip_cache[clip] = model.get_conditioning_latents(audio_path=[clip])
+            gpt, spe = clip_cache[clip]
+        else:                                                      # built-in speakers
             name = settings.voice_pool[pool_i % len(settings.voice_pool)]
             pool_i += 1
             entry = model.speaker_manager.speakers[name]

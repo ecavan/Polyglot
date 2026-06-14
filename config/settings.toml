@@ -18,11 +18,11 @@ tts_device         = "cpu"                                # XTTS on Apple Silico
 # "pool" = built-in voice_pool (reliable); "self" = clone each speaker from the episode
 # (only clones speakers with >=8s clean audio, else falls back to the pool).
 voice_mode         = "pool"
-# XTTS inference params (lower-level; tts.tts() ignores these). Higher temperature =
-# more expressive. Built-in voices stay stable at 0.85; cloned voices need ~0.75. >0.9 risks artifacts.
-temperature        = 0.85
-repetition_penalty = 5.0
-top_p              = 0.9
+# XTTS inference params (lower-level; tts.tts() ignores these). Cloned voices ramble above
+# ~0.75; expressivity comes from the cloned voice itself, so keep sampling stable.
+temperature        = 0.75
+repetition_penalty = 6.0
+top_p              = 0.85
 length_penalty     = 1.0
 speed              = 1.0
 # Voices assigned to detected speakers (round-robin). Chosen by audition:
