@@ -13,6 +13,8 @@ def _settings(tmp_path) -> Settings:
         transcribe_backend="mlx-whisper", mlx_whisper_repo="r", faster_whisper="m",
         translate_backend="mlx", mlx_llm_repo="r", ollama_model="m", ollama_url="u",
         tts_backend="xtts", tts_device="cpu", voice_mode="pool",
+        orpheus_gguf=tmp_path / "orph.gguf", orpheus_voices=["Pierre"],
+        orpheus_temperature=0.6, orpheus_max_tokens=1800,
         tts_temperature=0.82, tts_repetition_penalty=5.0, tts_top_p=0.9,
         tts_length_penalty=1.0, tts_speed=1.0,
         voice_pool=["Damien Black", "Claribel Dervla"],

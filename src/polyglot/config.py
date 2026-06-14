@@ -20,6 +20,11 @@ class Settings:
     tts_device: str
     # "self" = clone each detected speaker from the episode audio; "pool" = built-in voices
     voice_mode: str
+    # orpheus backend (expressive French TTS via llama.cpp GGUF + SNAC)
+    orpheus_gguf: Path
+    orpheus_voices: list[str]
+    orpheus_temperature: float
+    orpheus_max_tokens: int
     # tts expressiveness (XTTS inference params) + multi-voice
     tts_temperature: float
     tts_repetition_penalty: float
@@ -84,6 +89,8 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
     tts = d.get("tts", {})
     sep = d.get("separation", {})
     mix = d.get("mix", {})
+    orph = d.get("orpheus", {})
+    default_gguf = Path.home() / ".cache" / "polyglot" / "orpheus" / "Orpheus-3b-French-FT-Q8_0.gguf"
     return Settings(
         transcribe_backend=m["transcribe_backend"],
         mlx_whisper_repo=m["mlx_whisper_repo"],
@@ -95,6 +102,10 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         tts_backend=m["tts_backend"],
         tts_device=m["tts_device"],
         voice_mode=tts.get("voice_mode", "pool"),
+        orpheus_gguf=Path(orph.get("gguf", str(default_gguf))),
+        orpheus_voices=orph.get("voices", ["Pierre", "Amelie", "Marie"]),
+        orpheus_temperature=orph.get("temperature", 0.6),
+        orpheus_max_tokens=orph.get("max_tokens", 1800),
         tts_temperature=tts.get("temperature", 0.75),
         tts_repetition_penalty=tts.get("repetition_penalty", 6.0),
         tts_top_p=tts.get("top_p", 0.85),

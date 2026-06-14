@@ -186,8 +186,25 @@ def _xtts_engine(segments, job, settings, out_dir, source_wav=None) -> Callable[
     return synth
 
 
+def _orpheus_engine(segments, settings) -> Callable[[dict], np.ndarray]:
+    from polyglot import orpheus_tts
+    base = orpheus_tts.build_synth(settings)
+    voices = settings.orpheus_voices
+    speakers = sorted({seg.get("speaker") or "SPEAKER_00" for seg in segments})
+    voice_for = {spk: voices[i % len(voices)] for i, spk in enumerate(speakers)}
+
+    def synth(seg: dict) -> np.ndarray:
+        spk = seg.get("speaker") or "SPEAKER_00"
+        return base(seg["translation"], voice_for[spk])
+
+    return synth
+
+
 def synthesize(segments, job, settings, out_dir, source_wav=None) -> list[dict]:
-    if settings.tts_backend != "xtts":
+    if settings.tts_backend == "xtts":
+        synth = _xtts_engine(segments, job, settings, out_dir, source_wav)
+    elif settings.tts_backend == "orpheus":
+        synth = _orpheus_engine(segments, settings)
+    else:
         raise ValueError(f"unknown tts_backend: {settings.tts_backend}")
-    synth = _xtts_engine(segments, job, settings, out_dir, source_wav)
     return synthesize_with(segments, synth, out_dir, speed=settings.tts_speed)
