@@ -65,6 +65,18 @@ def test_synthesize_with_retries_then_trims_rambling(tmp_path):
     assert out[0]["audio_dur"] <= expected_max_seconds("Bonjour") + 1e-6  # trimmed
 
 
+def test_synthesize_with_speed_shortens_audio(tmp_path):
+    seg = new_segment(0, 0.0, 1.0, "Bonjour le monde, ceci est un test plus long")
+    seg["translation"] = seg["text"]
+
+    def synth(s):
+        return np.zeros(int(3 * SR), dtype=np.float32)  # 3s
+
+    out = synthesize_with([seg], synth, tmp_path, speed=1.5)
+    assert out[0]["audio_dur"] < 3.0                 # sped up
+    assert abs(out[0]["audio_dur"] - 3.0 / 1.5) < 0.3  # ~2.0s
+
+
 def test_synthesize_with_keeps_good_audio(tmp_path):
     seg = new_segment(0, 0.0, 1.0, "Bonjour")
     seg["translation"] = "Bonjour"

@@ -99,7 +99,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         tts_repetition_penalty=tts.get("repetition_penalty", 6.0),
         tts_top_p=tts.get("top_p", 0.85),
         tts_length_penalty=tts.get("length_penalty", 1.0),
-        tts_speed=tts.get("speed", 1.0),
+        tts_speed=tts.get("speed", 1.15),
         voice_pool=tts.get("voice_pool", ["Viktor Eka", "Andrew Chipper",
                                           "Craig Gutsy", "Damien Black"]),
         num_speakers=df.get("num_speakers", 2),

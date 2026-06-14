@@ -80,11 +80,20 @@ def expected_max_seconds(text: str) -> float:
     return max(3.0, len(text) / 12.0 + 1.0) * 1.6
 
 
+def _apply_speed(wav: np.ndarray, speed: float) -> np.ndarray:
+    """Pitch-preserving speed change (XTTS's own speed param is unreliable)."""
+    if abs(speed - 1.0) < 1e-3 or len(wav) < 2048:
+        return wav
+    import librosa
+    return np.asarray(librosa.effects.time_stretch(wav, rate=speed), dtype=np.float32)
+
+
 def synthesize_with(
     segments: list[dict],
     synth: Callable[[dict], np.ndarray],
     out_dir: Path,
     max_retries: int = 2,
+    speed: float = 1.0,
 ) -> list[dict]:
     out_dir.mkdir(parents=True, exist_ok=True)
     for seg in segments:
@@ -96,6 +105,7 @@ def synthesize_with(
             tries += 1
         if len(wav) > cap:                                # still long — trim trailing garbage
             wav = wav[: int(cap)]
+        wav = _apply_speed(wav, speed)                    # punch up the pacing (pitch-preserving)
         path = out_dir / f"seg_{seg['index']:04d}.wav"
         sf.write(str(path), wav, SR, subtype="FLOAT")
         seg["audio_path"] = str(path)
@@ -150,7 +160,7 @@ def _xtts_engine(segments, job, settings, out_dir, source_wav=None) -> Callable[
         repetition_penalty=settings.tts_repetition_penalty,
         top_p=settings.tts_top_p,
         length_penalty=settings.tts_length_penalty,
-        speed=settings.tts_speed,
+        speed=1.0,  # XTTS speed is unreliable; we time-stretch in synthesize_with instead
         enable_text_splitting=False,
     )
 
@@ -167,4 +177,4 @@ def synthesize(segments, job, settings, out_dir, source_wav=None) -> list[dict]:
     if settings.tts_backend != "xtts":
         raise ValueError(f"unknown tts_backend: {settings.tts_backend}")
     synth = _xtts_engine(segments, job, settings, out_dir, source_wav)
-    return synthesize_with(segments, synth, out_dir)
+    return synthesize_with(segments, synth, out_dir, speed=settings.tts_speed)

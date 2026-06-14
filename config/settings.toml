@@ -24,7 +24,7 @@ temperature        = 0.75
 repetition_penalty = 6.0
 top_p              = 0.85
 length_penalty     = 1.0
-speed              = 1.0
+speed              = 1.15        # post-synthesis pitch-preserving speed-up (punchier pacing)
 # Voices assigned to detected speakers (round-robin). Chosen by audition:
 # two distinct males (Viktor Eka, Andrew Chipper) for the two hosts, plus alternates.
 voice_pool         = ["Viktor Eka", "Andrew Chipper", "Craig Gutsy", "Damien Black"]
