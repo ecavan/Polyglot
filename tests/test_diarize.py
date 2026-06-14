@@ -7,18 +7,18 @@ from polyglot.segments import new_segment
 def test_cluster_two_well_separated_groups():
     a = np.array([1.0, 0.0, 0.0])
     b = np.array([0.0, 1.0, 0.0])
-    labels = cluster_embeddings([a, a, b, b], min_silhouette=0.15)
+    labels = cluster_embeddings([a, a, b, b], threshold=0.5)
     assert len(set(labels)) == 2
     assert labels[0] == labels[1]
     assert labels[2] == labels[3]
     assert labels[0] != labels[2]
 
 
-def test_cluster_weak_separation_collapses_to_one():
-    # four near-identical vectors; with a high silhouette bar, treat as one speaker
+def test_cluster_near_identical_one_speaker():
+    # near-identical vectors -> cosine distance below threshold -> single speaker
     base = np.array([1.0, 0.0, 0.0])
-    embs = [base, base + 0.01, base + 0.02, base + 0.015]
-    labels = cluster_embeddings(embs, min_silhouette=0.9)
+    embs = [base, base + 0.001, base + 0.002, base + 0.0015]
+    labels = cluster_embeddings(embs, threshold=0.5)
     assert len(set(labels)) == 1
 
 

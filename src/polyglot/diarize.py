@@ -9,34 +9,24 @@ ECAPA_SOURCE = "speechbrain/spkrec-ecapa-voxceleb"
 MODEL_DIR = Path.home() / ".cache" / "polyglot" / "ecapa"
 
 
-def cluster_embeddings(embeddings: list, max_speakers: int = 4, min_silhouette: float = 0.15) -> list:
-    """Cluster speaker embeddings into speakers.
+def cluster_embeddings(embeddings: list, threshold: float = 0.5) -> list:
+    """Cluster speaker embeddings into speakers via a cosine distance threshold.
 
-    Tries k = 2..max_speakers (agglomerative, cosine) and keeps the k with the best
-    silhouette score. If even the best separation is weak (< min_silhouette) — i.e.
-    it's really one speaker — everything collapses to a single speaker.
+    Agglomerative clustering merges segments whose cosine distance is below
+    `threshold`. A true single speaker (all segments close together) collapses to
+    one cluster; distinct speakers — even same-gender ones — split apart. Lower
+    threshold => more speakers.
     """
     n = len(embeddings)
     if n <= 1:
         return [0] * n
     X = np.vstack(embeddings)
     from sklearn.cluster import AgglomerativeClustering
-    from sklearn.metrics import silhouette_score
 
-    best_labels = [0] * n
-    best_score = -1.0
-    for k in range(2, min(max_speakers, n - 1) + 1):
-        labels = AgglomerativeClustering(
-            n_clusters=k, metric="cosine", linkage="average"
-        ).fit_predict(X)
-        if len(set(labels)) < 2:
-            continue
-        score = silhouette_score(X, labels, metric="cosine")
-        if score > best_score:
-            best_score, best_labels = score, list(labels)
-    if best_score < min_silhouette:
-        return [0] * n
-    return [int(x) for x in best_labels]
+    labels = AgglomerativeClustering(
+        n_clusters=None, distance_threshold=threshold, metric="cosine", linkage="average"
+    ).fit_predict(X)
+    return [int(x) for x in labels]
 
 
 def label_segments(segments: list[dict], labels: list[int]) -> list[dict]:
@@ -85,5 +75,5 @@ def diarize(wav_path: Path, segments: list[dict], settings: Settings) -> list[di
     if not segments:
         return segments
     embs = _embed_segments(wav_path, segments, settings)
-    labels = cluster_embeddings(embs, min_silhouette=settings.diarize_threshold)
+    labels = cluster_embeddings(embs, threshold=settings.diarize_threshold)
     return label_segments(segments, labels)
