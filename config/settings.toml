@@ -61,6 +61,15 @@ bucket          = "polyglot-media"
 # credentials come from env vars, never this file:
 #   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
 
+[library]
+# Jellyfin watches Videos/ and Podcasts/ under this folder. Dubbed files + bilingual
+# .srt land here; point Jellyfin's libraries at <path>/Videos and <path>/Podcasts.
+path = "~/PolyglotLibrary"
+
+[retention]
+keep         = 10    # max dubbed items kept per source
+max_age_days = 7     # also purge anything older than this (weekly window)
+
 [defaults]
 clip_seconds      = 0        # 0 = full episode; >0 = trim (handy for testing)
 max_video_minutes = 60       # skip YouTube videos longer than this (sweet spot ~15-30 min)

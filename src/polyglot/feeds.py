@@ -41,7 +41,35 @@ def list_episodes_from_url(url: str, limit: int | None) -> list[Episode]:
     return out
 
 
-def list_episodes(job: JobSpec, limit: int | None) -> list[Episode]:
+def list_youtube(url: str, limit: int | None, max_minutes: int = 60) -> list[Episode]:
+    from yt_dlp import YoutubeDL
+    opts = {"extract_flat": True, "quiet": True, "noprogress": True}
+    if limit:
+        opts["playlistend"] = limit
+    with YoutubeDL(opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+    out: list[Episode] = []
+    for e in (info.get("entries") or []):
+        dur = e.get("duration") or 0
+        if max_minutes and dur and dur > max_minutes * 60:
+            continue  # flat-listing may omit duration; fetch_video re-checks the hard limit
+        vid = e.get("id")
+        if not vid:
+            continue
+        out.append(Episode(
+            guid=vid,
+            title=e.get("title", "(untitled)"),
+            published=e.get("upload_date"),
+            media_url=f"https://www.youtube.com/watch?v={vid}",
+        ))
+        if limit and len(out) >= limit:
+            break
+    return out
+
+
+def list_episodes(job: JobSpec, limit: int | None, max_minutes: int = 60) -> list[Episode]:
     if job.source_type == "rss":
         return list_episodes_from_url(job.source, limit)
-    raise NotImplementedError(f"source_type '{job.source_type}' not supported in Phase 1")
+    if job.source_type == "youtube":
+        return list_youtube(job.source, limit, max_minutes)
+    raise NotImplementedError(f"source_type '{job.source_type}' not supported")

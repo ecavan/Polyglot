@@ -8,6 +8,17 @@ target_lang = "fr"
 # have a reference clip (see docs/setup/setup-notes.md).
 enabled     = true
 
+# YouTube source: `watch` dubs new videos (<= max_video_minutes) into the Jellyfin
+# library. enabled=false by default — flip to true when you're ready (each new video
+# is a full dub and takes a while).
+[[show]]
+id          = "gotham-fr"
+title       = "GothamChess (Français)"
+source      = "https://www.youtube.com/@GothamChess/videos"
+source_type = "youtube"
+target_lang = "fr"
+enabled     = false
+
 # Adding Italian later = this block + a config/prompts/it.txt. No code change.
 # [[show]]
 # id = "thedaily-it"; title = "The Daily (Italiano)"

@@ -78,6 +78,21 @@ def cmd_video(url: str, lang: str, clip_seconds: int | None, speakers: int | Non
     return 1
 
 
+def cmd_watch() -> int:
+    """Process new episodes/videos for all enabled shows -> Jellyfin library +
+    retention. Designed to run from cron."""
+    from polyglot import watch
+    watch.watch()
+    return 0
+
+
+def cmd_cleanup() -> int:
+    from polyglot import storage
+    storage.cleanup_cache(load_settings())
+    print("cache cleaned")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="polyglot")
     sub = parser.add_subparsers(dest="command")
@@ -98,6 +113,9 @@ def main() -> int:
     p_video.add_argument("--clip-seconds", type=int, default=None)
     p_video.add_argument("--speakers", type=int, default=None)
 
+    sub.add_parser("watch", help="process new items for all enabled shows -> library (cron)")
+    sub.add_parser("cleanup", help="purge transient cache/")
+
     args = parser.parse_args()
 
     if args.command == "show":
@@ -106,6 +124,10 @@ def main() -> int:
         return cmd_run(args.show_id, args.latest, args.url, args.file, args.clip_seconds)
     if args.command == "video":
         return cmd_video(args.url, args.lang, args.clip_seconds, args.speakers)
+    if args.command == "watch":
+        return cmd_watch()
+    if args.command == "cleanup":
+        return cmd_cleanup()
     parser.print_help()
     return 0
 
