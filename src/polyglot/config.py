@@ -18,6 +18,8 @@ class Settings:
     ollama_url: str
     tts_backend: str
     tts_device: str
+    # "self" = clone each detected speaker from the episode audio; "pool" = built-in voices
+    voice_mode: str
     # tts expressiveness (XTTS inference params) + multi-voice
     tts_temperature: float
     tts_repetition_penalty: float
@@ -84,9 +86,10 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         ollama_url=m["ollama_url"],
         tts_backend=m["tts_backend"],
         tts_device=m["tts_device"],
-        tts_temperature=tts.get("temperature", 0.90),
-        tts_repetition_penalty=tts.get("repetition_penalty", 5.0),
-        tts_top_p=tts.get("top_p", 0.9),
+        voice_mode=tts.get("voice_mode", "self"),
+        tts_temperature=tts.get("temperature", 0.75),
+        tts_repetition_penalty=tts.get("repetition_penalty", 6.0),
+        tts_top_p=tts.get("top_p", 0.85),
         tts_length_penalty=tts.get("length_penalty", 1.0),
         tts_speed=tts.get("speed", 1.0),
         voice_pool=tts.get("voice_pool", ["Viktor Eka", "Andrew Chipper",

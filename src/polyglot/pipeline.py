@@ -22,7 +22,7 @@ def process_episode(job: JobSpec, episode: Episode, settings: Settings) -> dict:
         if settings.diarize:
             segments = diarize.diarize(wav, segments, settings)   # label speakers
         segments = translate.translate(segments, job, settings)   # loads LLM, frees it
-        segments = tts.synthesize(segments, job, settings, work / "segments")
+        segments = tts.synthesize(segments, job, settings, work / "segments", source_wav=wav)
         audio = assemble.assemble(segments, out_mp3, settings)
         subtitles.write_subs(segments, audio.timeline, subs_dir, job.show_id, ep_id)
         return {

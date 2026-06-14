@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from polyglot.tts import synthesize_with, assign_voices, SR, CLONE
+from polyglot.tts import synthesize_with, assign_voices, select_reference_spans, SR, CLONE
 from polyglot.segments import new_segment
 
 
@@ -42,3 +42,13 @@ def test_assign_voices_with_clone_uses_clone_for_first():
 def test_assign_voices_wraps_pool():
     m = assign_voices(["SPEAKER_00", "SPEAKER_01", "SPEAKER_02"], ["A"], clone_available=False)
     assert m == {"SPEAKER_00": "A", "SPEAKER_01": "A", "SPEAKER_02": "A"}
+
+
+def test_select_reference_spans_picks_longest_per_speaker():
+    s0a = new_segment(0, 0.0, 1.0, "x"); s0a["speaker"] = "SPEAKER_00"     # 1s
+    s0b = new_segment(1, 1.0, 6.0, "y"); s0b["speaker"] = "SPEAKER_00"     # 5s
+    s1a = new_segment(2, 6.0, 7.0, "z"); s1a["speaker"] = "SPEAKER_01"     # 1s
+    s1b = new_segment(3, 7.0, 17.0, "w"); s1b["speaker"] = "SPEAKER_01"    # 10s
+    spans = select_reference_spans([s0a, s0b, s1a, s1b], target_seconds=4.0)
+    assert [s["index"] for s in spans["SPEAKER_00"]] == [1]   # longest reaches target
+    assert [s["index"] for s in spans["SPEAKER_01"]] == [3]

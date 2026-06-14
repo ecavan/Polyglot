@@ -15,11 +15,16 @@ tts_backend        = "xtts"                               # "xtts" | "piper"
 tts_device         = "cpu"                                # XTTS on Apple Silicon: MUST be "cpu"
 
 [tts]
+# "self" = clone each detected speaker's own voice from the episode audio (hosts keep
+# their real timbre); "pool" = use the built-in voice_pool below.
+voice_mode         = "self"
 # XTTS inference params (lower-level; tts.tts() ignores these). Higher temperature /
 # lower repetition_penalty => more expressive, less monotone (but >0.9 temp risks artifacts).
-temperature        = 0.90
-repetition_penalty = 4.0
-top_p              = 0.92
+# With self-cloning, expressiveness comes from the hosts' own prosody, so keep sampling
+# stable — high temperature + low repetition_penalty makes XTTS ramble/hallucinate.
+temperature        = 0.75
+repetition_penalty = 6.0
+top_p              = 0.85
 length_penalty     = 1.0
 speed              = 1.0
 # Voices assigned to detected speakers (round-robin). Chosen by audition:
