@@ -18,6 +18,15 @@ class Settings:
     ollama_url: str
     tts_backend: str
     tts_device: str
+    # tts expressiveness (XTTS inference params) + multi-voice
+    tts_temperature: float
+    tts_repetition_penalty: float
+    tts_top_p: float
+    tts_length_penalty: float
+    tts_speed: float
+    voice_pool: list[str]
+    # diarization
+    diarize_threshold: float
     # paths
     cache_dir: Path
     output_dir: Path
@@ -63,6 +72,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
     with open(path, "rb") as f:
         d = tomllib.load(f)
     m, p, h, df = d["models"], d["paths"], d["hosting"], d["defaults"]
+    tts = d.get("tts", {})
     return Settings(
         transcribe_backend=m["transcribe_backend"],
         mlx_whisper_repo=m["mlx_whisper_repo"],
@@ -73,6 +83,14 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         ollama_url=m["ollama_url"],
         tts_backend=m["tts_backend"],
         tts_device=m["tts_device"],
+        tts_temperature=tts.get("temperature", 0.82),
+        tts_repetition_penalty=tts.get("repetition_penalty", 5.0),
+        tts_top_p=tts.get("top_p", 0.9),
+        tts_length_penalty=tts.get("length_penalty", 1.0),
+        tts_speed=tts.get("speed", 1.0),
+        voice_pool=tts.get("voice_pool", ["Damien Black", "Claribel Dervla",
+                                          "Viktor Eka", "Sofia Hellen"]),
+        diarize_threshold=df.get("diarize_threshold", 0.15),
         cache_dir=Path(p["cache"]),
         output_dir=Path(p["output"]),
         voices_dir=Path(p["voices"]),

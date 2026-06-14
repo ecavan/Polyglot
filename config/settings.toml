@@ -14,6 +14,17 @@ ollama_url         = "http://localhost:11434/api/chat"
 tts_backend        = "xtts"                               # "xtts" | "piper"
 tts_device         = "cpu"                                # XTTS on Apple Silicon: MUST be "cpu"
 
+[tts]
+# XTTS inference params (lower-level; tts.tts() ignores these). Higher temperature /
+# lower repetition_penalty => more expressive, less monotone (but >0.9 temp risks artifacts).
+temperature        = 0.82
+repetition_penalty = 5.0
+top_p              = 0.9
+length_penalty     = 1.0
+speed              = 1.0
+# Voices assigned to detected speakers (round-robin). Default: male then female.
+voice_pool         = ["Damien Black", "Claribel Dervla", "Viktor Eka", "Sofia Hellen"]
+
 [paths]
 cache   = "cache"
 output  = "output"
@@ -29,8 +40,9 @@ bucket          = "polyglot-media"
 #   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
 
 [defaults]
-clip_seconds = 0        # 0 = full episode; >0 = trim (handy for testing)
-diarize      = false
-temperature  = 0.3      # translation sampler temp (0.0 = greedy/deterministic)
-max_tokens   = 512      # per-segment translation cap
-gap_ms       = 200      # silence inserted between synthesized segments
+clip_seconds      = 0        # 0 = full episode; >0 = trim (handy for testing)
+diarize           = true     # label speakers -> assign distinct voices (1 voice if solo)
+diarize_threshold = 0.15     # min silhouette to accept >1 speaker (lower => more speakers)
+temperature       = 0.3      # translation sampler temp (0.0 = greedy/deterministic)
+max_tokens        = 512      # per-segment translation cap
+gap_ms            = 200      # silence inserted between synthesized segments
