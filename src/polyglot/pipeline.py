@@ -50,9 +50,13 @@ def process_episode(job: JobSpec, episode: Episode, settings: Settings) -> dict:
         src = download.fetch_audio(episode.media_url, work, settings.clip_seconds)
         segments, audio = dub_audio(src, job, settings, work, out_mp3)
         subtitles.write_subs(segments, audio.timeline, subs_dir, job.show_id, ep_id)
-        files = [str(out_mp3), *_sub_files(subs_dir, ep_id)]
+        tv_mp4 = audio_dir / f"{ep_id}.tv.mp4"   # static-cover video w/ burned FR/EN subs, for the TV
+        publish_video.make_audio_video(out_mp3, subs_dir / f"{ep_id}.ass", tv_mp4)
+        files = [str(out_mp3), str(tv_mp4), *_sub_files(subs_dir, ep_id)]
         return {
-            "ok": True, "mp3": str(out_mp3), "srt": str(subs_dir / f"{ep_id}.srt"),
+            "ok": True, "mp3": str(out_mp3), "tv_mp4": str(tv_mp4),
+            "media": [str(out_mp3), str(tv_mp4)],   # phone (mp3) + TV (mp4) -> both into library
+            "srt": str(subs_dir / f"{ep_id}.srt"),
             "duration": audio.duration, "byte_length": audio.byte_length, "files": files,
         }
     except Exception as e:  # episode isolation
@@ -79,7 +83,8 @@ def process_video(job: JobSpec, episode: Episode, settings: Settings) -> dict:
         publish_video.mux(video, work / "dub.mp3", out_mp4, subtitle=styled_ass)
         files = [str(out_mp4), *_sub_files(subs_dir, ep_id)]
         return {
-            "ok": True, "mp4": str(out_mp4), "srt": str(subs_dir / f"{ep_id}.srt"),
+            "ok": True, "mp4": str(out_mp4), "media": [str(out_mp4)],
+            "srt": str(subs_dir / f"{ep_id}.srt"),
             "duration": audio.duration, "files": files,
         }
     except Exception as e:  # episode isolation

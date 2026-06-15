@@ -21,13 +21,14 @@ def run_watch(settings, shows) -> int:
                 continue
             if show.source_type == "youtube":
                 res = pipeline.process_video(job, ep, settings)
-                kind, media = "video", res.get("mp4")
+                kind = "video"
             else:
                 res = pipeline.process_episode(job, ep, settings)
-                kind, media = "audio", res.get("mp3")
+                kind = "audio"
             if not res.get("ok"):
                 print(f"  FAILED {show.id}/{ep.guid}: {res.get('error')}")
                 continue
+            media = res.get("media") or [res.get("mp4") or res.get("mp3")]
             lib_files = library.publish_to_library(kind, show.title, ep.title, media, res["srt"], settings)
             files = lib_files + res.get("files", [])   # library copies + output artifacts: all purgeable
             state.mark_done(settings.state_path, show.id, ep.guid, kind, files, ep.title,

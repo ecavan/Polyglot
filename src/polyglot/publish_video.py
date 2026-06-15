@@ -15,6 +15,25 @@ def _escape_sub(path: Path) -> str:
     return str(path).replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
 
 
+def make_audio_video(audio_path: Path, subtitle: Path, out_mp4: Path,
+                     bg: str = "0x111418") -> Path:
+    """Render a podcast MP3 into a minimal MP4 for the TV: a static dark background
+    with the styled side-by-side FR/EN transcript burned in, so Jellyfin on the Roku
+    always shows the transcript (its audio-only subtitle support is unreliable)."""
+    out_mp4.parent.mkdir(parents=True, exist_ok=True)
+    dur = _duration(audio_path)
+    subprocess.run(
+        ["ffmpeg", "-y",
+         "-f", "lavfi", "-i", f"color=c={bg}:s=1920x1080:r=10:d={dur:.3f}",
+         "-i", str(audio_path),
+         "-vf", f"ass={_escape_sub(subtitle)}",
+         "-c:v", "libx264", "-preset", "veryfast", "-tune", "stillimage", "-pix_fmt", "yuv420p",
+         "-c:a", "aac", "-b:a", "160k", "-shortest", str(out_mp4)],
+        check=True,
+    )
+    return out_mp4
+
+
 def mux(video_path: Path, audio_path: Path, out_mp4: Path, subtitle: Path | None = None) -> Path:
     """Replace the video's audio with the French dub and (optionally) BURN IN the bilingual
     subtitle so the FR+EN transcript is always on screen (any player). Pads the video by

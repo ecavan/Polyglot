@@ -24,3 +24,16 @@ def test_publish_to_library_places_media_and_srt(tmp_path):
     assert srt_dest.name == "0 Elo Chess.srt"   # same basename -> Jellyfin auto-loads
     assert media_dest.read_text() == "video"
     assert srt_dest.read_text() == "subs"
+
+
+def test_publish_to_library_copies_multiple_media(tmp_path):
+    mp3 = tmp_path / "dub.mp3"; mp3.write_text("audio")
+    mp4 = tmp_path / "dub.tv.mp4"; mp4.write_text("tv")
+    srt = tmp_path / "ep.srt"; srt.write_text("subs")
+    settings = _S(tmp_path / "lib")
+    out = publish_to_library("audio", "PTI (FR)", "Game 5", [mp3, mp4], srt, settings)
+    dest_dir = tmp_path / "lib" / "Podcasts" / "PTI _FR_"
+    names = sorted(p.name for p in out)
+    assert names == ["Game 5.mp3", "Game 5.mp4", "Game 5.srt"]   # phone + TV + shared-basename subs
+    assert (dest_dir / "Game 5.mp3").read_text() == "audio"
+    assert (dest_dir / "Game 5.mp4").read_text() == "tv"
