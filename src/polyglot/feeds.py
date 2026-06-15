@@ -48,6 +48,13 @@ def _episode_from_entry(e) -> Episode | None:
 
 def list_episodes_from_url(url: str, limit: int | None) -> list[Episode]:
     parsed = feedparser.parse(url)
+    # feedparser never raises on a dead/unreachable/malformed feed — it sets bozo and
+    # returns salvaged (often zero) entries. Surface that so a broken feed isn't silently
+    # mistaken for "no new episodes".
+    if parsed.bozo and not parsed.entries:
+        exc = parsed.get("bozo_exception")
+        print(f"  WARNING feed fetch/parse failed ({url}): {exc}")
+        return []
     out: list[Episode] = []
     for e in parsed.entries:
         ep = _episode_from_entry(e)
