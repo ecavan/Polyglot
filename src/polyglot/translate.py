@@ -96,65 +96,115 @@ def _context_block(prev: list[dict]) -> str:
             + "\n".join(lines) + "\n\n")
 
 
-def _claude_chunk(client, model: str, system: str, chunk: list[dict],
-                  ctx: str, max_retries: int) -> list[str]:
-    import anthropic
-
+def _build_user(chunk: list[dict], ctx: str) -> str:
     numbered = "\n".join(f"{i + 1}. {seg['text']}" for i, seg in enumerate(chunk))
-    user = (f"{ctx}Traduis ces {len(chunk)} répliques anglaises en français québécois. "
+    return (f"{ctx}Traduis ces {len(chunk)} répliques anglaises en français québécois. "
             f"Retourne un tableau JSON d'exactement {len(chunk)} chaînes, dans l'ordre.\n\n{numbered}")
-    last_err = None
-    for attempt in range(max_retries):
-        try:
-            resp = client.messages.create(
-                model=model,
-                max_tokens=max(1024, len(chunk) * 120),
-                system=system,
-                messages=[{"role": "user", "content": user}],
-            )
-            text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
-            arr = _parse_json_array(text)
-            if len(arr) != len(chunk):
-                raise ValueError(f"expected {len(chunk)} translations, got {len(arr)}")
-            return arr
-        except (anthropic.APIError, ValueError, json.JSONDecodeError) as e:
-            last_err = e
-            if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)         # backoff on transient API / format errors
-    raise last_err
 
 
-def _translate_claude(segments: list[dict], system: str, settings: Settings) -> list[dict]:
-    """Whole-episode translation in indexed chunks with cross-chunk context. Any chunk that
-    can't be translated (API down, malformed/misaligned reply) falls back to the local model
-    for just those segments, so the unattended loop never wedges."""
+def _gemini_caller(settings: Settings) -> Callable[[str, str, int], list[str]]:
+    import requests
+
+    key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+           f"{settings.gemini_model}:generateContent")
+
+    def call(system: str, user: str, n: int) -> list[str]:
+        body = {
+            "system_instruction": {"parts": [{"text": system}]},
+            "contents": [{"role": "user", "parts": [{"text": user}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",     # force a clean JSON array back
+                "responseSchema": {"type": "ARRAY", "items": {"type": "STRING"}},
+                "temperature": settings.temperature,
+                "maxOutputTokens": max(4096, n * 150),
+            },
+        }
+        last = None
+        for attempt in range(settings.translate_max_retries):
+            try:
+                r = requests.post(url, params={"key": key},
+                                  headers={"Content-Type": "application/json"},
+                                  json=body, timeout=180)
+                r.raise_for_status()
+                cand = r.json()["candidates"][0]
+                text = "".join(p.get("text", "") for p in cand["content"]["parts"])
+                arr = _parse_json_array(text)
+                if len(arr) != n:
+                    raise ValueError(f"expected {n} translations, got {len(arr)}")
+                return arr
+            except (requests.RequestException, ValueError, KeyError,
+                    IndexError, json.JSONDecodeError) as e:
+                last = e
+                if attempt < settings.translate_max_retries - 1:
+                    time.sleep(2 ** attempt)
+        raise last
+
+    return call
+
+
+def _claude_caller(settings: Settings) -> Callable[[str, str, int], list[str]]:
     import anthropic
 
     client = anthropic.Anthropic()
+
+    def call(system: str, user: str, n: int) -> list[str]:
+        last = None
+        for attempt in range(settings.translate_max_retries):
+            try:
+                resp = client.messages.create(
+                    model=settings.anthropic_model, max_tokens=max(1024, n * 120),
+                    system=system, messages=[{"role": "user", "content": user}],
+                )
+                text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+                arr = _parse_json_array(text)
+                if len(arr) != n:
+                    raise ValueError(f"expected {n} translations, got {len(arr)}")
+                return arr
+            except (anthropic.APIError, ValueError, json.JSONDecodeError) as e:
+                last = e
+                if attempt < settings.translate_max_retries - 1:
+                    time.sleep(2 ** attempt)
+        raise last
+
+    return call
+
+
+def remote_translate(segments: list[dict], system: str, settings: Settings,
+                     call: Callable[[str, str, int], list[str]], label: str) -> list[dict]:
+    """Whole-episode translation in indexed chunks with cross-chunk context, via a remote LLM.
+    Any chunk that can't be translated (API down, malformed/misaligned reply) falls back to
+    the local model for just those segments, so the unattended loop never wedges."""
     batch_system = system + _BATCH_INSTRUCTION
     failed: list[dict] = []
     for start, chunk in _chunks(segments, settings.translate_chunk_size):
         ctx = _context_block(segments[max(0, start - settings.translate_context_lines):start])
         try:
-            for seg, fr in zip(chunk, _claude_chunk(client, settings.anthropic_model,
-                                                    batch_system, chunk, ctx,
-                                                    settings.translate_max_retries)):
+            for seg, fr in zip(chunk, call(batch_system, _build_user(chunk, ctx), len(chunk))):
                 seg["translation"] = fr.strip()
         except Exception as e:
-            print(f"  claude chunk @{start} failed ({e}); translating {len(chunk)} segs locally")
+            print(f"  {label} chunk @{start} failed ({e}); translating {len(chunk)} segs locally")
             failed.extend(chunk)
     if failed:
         _translate_local(failed, system, settings)
     return segments
 
 
+# backend -> (env var that must be present, function building the per-chunk caller)
+_REMOTE = {
+    "gemini": (("GEMINI_API_KEY", "GOOGLE_API_KEY"), _gemini_caller),
+    "claude": (("ANTHROPIC_API_KEY",), _claude_caller),
+}
+
+
 def translate(segments: list[dict], job: JobSpec, settings: Settings) -> list[dict]:
     system = job.prompt_path.read_text(encoding="utf-8")
     backend = settings.translate_backend
-    if backend == "claude":
-        if os.environ.get("ANTHROPIC_API_KEY"):
-            return _translate_claude(segments, system, settings)
-        print("  no ANTHROPIC_API_KEY set; using local translation")
+    if backend in _REMOTE:
+        env_keys, builder = _REMOTE[backend]
+        if any(os.environ.get(k) for k in env_keys):
+            return remote_translate(segments, system, settings, builder(settings), backend)
+        print(f"  no {env_keys[0]} set; using local translation")
         backend = "mlx"
     if backend == "mlx":
         return _translate_local(segments, system, settings)

@@ -1,8 +1,8 @@
 """A/B translation comparison on a real episode.
 
 Transcribes a short clip, then translates the same segments three ways so you can SEE the
-quality gap and decide whether the paid key is worth it:
-  - claude : Anthropic API (needs ANTHROPIC_API_KEY)         [the proposed default]
+quality gap and decide whether the API key is worth it:
+  - gemini : Gemini API (needs GEMINI_API_KEY)               [the proposed default]
   - mlx    : local Qwen-7B-4bit                               [the free/offline fallback]
   - argos  : Argos Translate, a free offline Python MT lib    [optional; the "just a library" idea]
 
@@ -67,15 +67,15 @@ def main() -> int:
     segs = transcribe.transcribe(wav16, settings)[: args.n]
     print(f"transcribed {len(segs)} segments\n")
 
-    # claude (only if key present)
+    # gemini (only if key present)
     import os
-    claude = None
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        c = _copy(segs)
-        T._translate_claude(c, system, settings)
-        claude = [s["translation"] for s in c]
+    gemini = None
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+        g = _copy(segs)
+        T.remote_translate(g, system, settings, T._gemini_caller(settings), "gemini")
+        gemini = [s["translation"] for s in g]
     else:
-        print("  [claude skipped: no ANTHROPIC_API_KEY]")
+        print("  [gemini skipped: no GEMINI_API_KEY]")
 
     # local mlx
     m = _copy(segs)
@@ -93,8 +93,8 @@ def main() -> int:
     print("\n" + "=" * 80)
     for i, s in enumerate(segs):
         print(f"[{i}] EN: {s['text']}")
-        if claude:
-            print(block("claude", claude[i]))
+        if gemini:
+            print(block("gemini", gemini[i]))
         print(block("mlx", mlx[i]))
         if argos:
             print(block("argos", argos[i]))
