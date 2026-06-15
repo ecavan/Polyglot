@@ -140,25 +140,38 @@ with Roku + iPhone apps, and it reads our bilingual `.srt` (French + English sta
 
 **How it flows:** `polyglot watch` dubs new items into a library folder; Jellyfin serves them.
 - Videos  → `~/PolyglotLibrary/Videos/<show>/<title>.mp4` + `<title>.srt`
-- Podcasts → `~/PolyglotLibrary/Podcasts/<show>/<title>.mp3` + `<title>.srt`
-- The `.srt` shares the media basename, so Jellyfin auto-loads it as a subtitle track.
+  (the side-by-side FR/EN transcript is also **burned into the video**).
+- Podcasts → `~/PolyglotLibrary/Podcasts/<show>/<title>.mp3` (+ `<title>.srt`) **and**
+  `<title>.mp4` — a static-cover video with the transcript burned in, because Jellyfin's
+  Roku client shows subtitles unreliably on audio-only items. Listen to the `.mp3` on the
+  phone; watch the `.mp4` on the TV.
+- All media + the `.srt` share one basename, so Jellyfin auto-loads the subtitle.
 
-**One-time setup:**
-1. Install Jellyfin server on the Mac (jellyfin.org or `brew install --cask jellyfin`). Open `http://localhost:8096`.
-2. Add two libraries: a **Movies/“Other Videos”** library → `~/PolyglotLibrary/Videos`; a **Music** (or Movies) library → `~/PolyglotLibrary/Podcasts`.
-3. On the **Roku**: Channel Store → install **Jellyfin** → add server `http://<mac-LAN-ip>:8096`.
-4. On **iPhone/iPad**: install the **Jellyfin** app → same server. (Both must be on your home Wi-Fi; for away-from-home, add a Tailscale VPN later.)
-5. Watch: open an item, pick the subtitle track to see French + English over the video.
+**One-time setup (scripted):**
+1. `scripts/setup_jellyfin.sh` — installs Jellyfin (Homebrew), creates the two library
+   folders, opens the server, and prints your exact Roku/iPhone URL + the wizard steps.
+2. In the browser wizard (`http://localhost:8096`): create your admin user, then add two
+   **“Home videos and photos”** libraries pointing at `~/PolyglotLibrary/Videos` and
+   `~/PolyglotLibrary/Podcasts`. (Home videos avoids internet metadata matching and loads
+   the same-basename `.srt`.)
+3. **Roku**: Channel Store → install **Jellyfin** → Add Server `http://<mac-LAN-ip>:8096`.
+4. **iPhone/iPad**: **Jellyfin Mobile** app → same server. (Same Wi-Fi; for away-from-home,
+   add Tailscale and use the Mac's Tailscale IP.)
 
-**Automation (retention = cap 10 + purge >7 days):**
+**Automation (retention = cap `keep` + purge older than `max_age_days`):**
 - `config/settings.toml` → `[library] path`, `[retention] keep/max_age_days`, `[defaults] max_video_minutes`.
 - Enable shows in `config/shows.toml` (`enabled = true`). The YouTube show (`gotham-fr`) is off by
   default — **the first `watch` after enabling backfills up to `keep` videos and is slow** (each is a full dub).
-- Cron (every 30 min):
-  ```
-  */30 * * * * cd /Users/elijahcavan/Documents/GitHub/Polyglot && /opt/homebrew/bin/uv run polyglot watch >> /tmp/polyglot.log 2>&1
-  ```
-- `polyglot cleanup` purges the transient `cache/` (also run at the end of each `watch`).
+- Schedule it: `scripts/install_schedule.sh` installs a **launchd** job that runs
+  `polyglot watch` every 30 min (preferred over cron on a laptop — it runs on wake if the
+  Mac was asleep). Logs to `~/Library/Logs/Polyglot/watch.log`. Remove with
+  `scripts/uninstall_schedule.sh`.
+  - Verify: `launchctl list | grep polyglot`  ·  Run now: `launchctl kickstart -k gui/$(id -u)/com.polyglot.watch`
+- Idempotent + self-cleaning: each item is dubbed once (permanent "seen" ledger at
+  `state/processed.json`), retention deletes evicted media (library + `output/`) while
+  keeping the ledger entry so it's never re-dubbed, and each item's `cache/` work dir is
+  freed as it finishes. A lock file prevents overlapping runs from stacking.
+- `polyglot cleanup` purges the entire transient `cache/` manually if needed.
 
 **Note:** R2 (below) is now optional — only needed if you later want a remote web app for true
 side-by-side EN/FR transcript columns / off-home access. Jellyfin covers Roku + phone for free.
