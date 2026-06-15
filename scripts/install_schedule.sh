@@ -1,7 +1,10 @@
 #!/bin/zsh
 # Install (or refresh) the launchd job that runs `polyglot watch` every 30 minutes.
-# launchd is preferred over cron on a laptop: if the Mac was asleep when the interval
-# elapsed, the job runs on wake instead of being silently skipped.
+# launchd is chosen over cron on a laptop because it manages a per-user agent cleanly.
+# NOTE: with StartInterval, a firing that lands while the Mac is asleep is dropped and the
+# next one happens interval-seconds after wake (it does not "catch up"); that's fine for a
+# podcast/video pull. The initial run is triggered explicitly below, not via RunAtLoad, so
+# logging in never kicks off a heavy dub.
 #
 # Usage:  scripts/install_schedule.sh [interval_seconds]
 set -euo pipefail
@@ -32,20 +35,19 @@ cat > "$PLIST" <<PLIST
         <key>POLYGLOT_UV</key>   <string>${UV}</string>
     </dict>
     <key>StartInterval</key>    <integer>${INTERVAL}</integer>
-    <key>RunAtLoad</key>        <true/>
+    <key>RunAtLoad</key>        <false/>
     <key>StandardOutPath</key>  <string>${LOGDIR}/watch.log</string>
     <key>StandardErrorPath</key><string>${LOGDIR}/watch.log</string>
-    <key>ProcessType</key>      <string>Background</string>
     <key>LowPriorityIO</key>    <true/>
-    <key>Nice</key>             <integer>5</integer>
 </dict>
 </plist>
 PLIST
 
 UID_NUM="$(id -u)"
 launchctl bootout "gui/${UID_NUM}/${LABEL}" 2>/dev/null || true
+launchctl enable "gui/${UID_NUM}/${LABEL}"     # enable BEFORE bootstrap (a prior disable persists)
 launchctl bootstrap "gui/${UID_NUM}" "$PLIST"
-launchctl enable "gui/${UID_NUM}/${LABEL}"
+launchctl kickstart "gui/${UID_NUM}/${LABEL}"  # do the first run now (RunAtLoad is off)
 
 echo "Installed ${LABEL} (every ${INTERVAL}s)."
 echo "  plist : ${PLIST}"

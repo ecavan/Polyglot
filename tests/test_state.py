@@ -22,6 +22,21 @@ def test_state_remove(tmp_path):
     assert state.is_done(p, "s", "g2") is True
 
 
+def test_corrupt_ledger_is_quarantined_not_fatal(tmp_path):
+    p = tmp_path / "processed.json"
+    p.write_text("{ this is not valid json", encoding="utf-8")
+    assert state.is_done(p, "s", "g1") is False          # recovers instead of raising
+    assert list(tmp_path.glob("processed.json.corrupt-*"))  # bad file quarantined
+    state.mark_done(p, "s", "g1", "audio", [], ts=1.0)   # ledger is usable again
+    assert state.is_done(p, "s", "g1") is True
+
+
+def test_empty_ledger_file_treated_as_fresh(tmp_path):
+    p = tmp_path / "processed.json"
+    p.write_text("", encoding="utf-8")                    # 0-byte file (e.g. interrupted write)
+    assert state.is_done(p, "s", "g1") is False
+
+
 def test_mark_purged_keeps_seen_but_drops_from_live(tmp_path):
     p = tmp_path / "processed.json"
     state.mark_done(p, "s", "g1", "audio", [tmp_path / "a.mp3"], ts=1.0)

@@ -37,3 +37,15 @@ def test_publish_to_library_copies_multiple_media(tmp_path):
     assert names == ["Game 5.mp3", "Game 5.mp4", "Game 5.srt"]   # phone + TV + shared-basename subs
     assert (dest_dir / "Game 5.mp3").read_text() == "audio"
     assert (dest_dir / "Game 5.mp4").read_text() == "tv"
+
+
+def test_publish_to_library_disambiguates_same_title(tmp_path):
+    settings = _S(tmp_path / "lib")
+    a = tmp_path / "a.mp4"; a.write_text("A")
+    b = tmp_path / "b.mp4"; b.write_text("B")
+    srt = tmp_path / "s.srt"; srt.write_text("subs")
+    # two DIFFERENT episodes with the SAME human title must not collide / overwrite
+    out_a = publish_to_library("video", "Show", "Daily", a, srt, settings, ep_id="guid-aaaa")
+    out_b = publish_to_library("video", "Show", "Daily", b, srt, settings, ep_id="guid-bbbb")
+    assert {p.name for p in out_a}.isdisjoint({p.name for p in out_b})  # no shared filenames
+    assert all(p.exists() for p in out_a) and all(p.exists() for p in out_b)

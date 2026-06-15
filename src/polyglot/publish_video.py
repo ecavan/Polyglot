@@ -11,8 +11,12 @@ def _duration(path: Path) -> float:
 
 
 def _escape_sub(path: Path) -> str:
-    # ffmpeg subtitles filter: escape the few chars special inside the filtergraph.
-    return str(path).replace("\\", "\\\\").replace(":", "\\:").replace("'", "\\'")
+    # ffmpeg subtitles/ass filter: escape chars special inside the filtergraph. Commas and
+    # brackets matter too — the library basename now contains "[ep_id]".
+    out = str(path)
+    for ch in ("\\", ":", "'", ",", "[", "]"):
+        out = out.replace(ch, "\\" + ch)
+    return out
 
 
 def make_audio_video(audio_path: Path, subtitle: Path, out_mp4: Path,

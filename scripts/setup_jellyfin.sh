@@ -18,7 +18,9 @@ if [[ -d "/Applications/Jellyfin.app" ]]; then
   echo "    already installed."
 elif command -v brew >/dev/null 2>&1; then
   echo "    installing via Homebrew (this prompts for your password)..."
-  brew install --cask jellyfin
+  # don't let a non-zero brew result (e.g. already-installed, or a cask warning) abort the
+  # script before it prints the URL + wizard steps below.
+  brew install --cask jellyfin || echo "    (brew returned non-zero; continuing — check above if Jellyfin didn't install)"
 else
   echo "    Homebrew not found. Install it from https://brew.sh then re-run, or"
   echo "    download Jellyfin from https://jellyfin.org/downloads/"

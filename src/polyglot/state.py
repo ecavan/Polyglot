@@ -4,9 +4,24 @@ from pathlib import Path
 
 
 def _load(path: Path) -> dict:
-    if Path(path).is_file():
-        return json.loads(Path(path).read_text(encoding="utf-8"))
-    return {"items": []}
+    p = Path(path)
+    if not p.is_file():
+        return {"items": []}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or not isinstance(data.get("items"), list):
+            raise ValueError("ledger missing items[]")
+        return data
+    except (json.JSONDecodeError, ValueError, OSError) as e:
+        # A corrupt/empty ledger must NOT brick the unattended loop. Quarantine it and
+        # start fresh; worst case we re-dub recent items (idempotency is best-effort here).
+        backup = p.with_name(f"{p.name}.corrupt-{int(p.stat().st_mtime)}")
+        print(f"WARNING ledger {p} unreadable ({e}); quarantined to {backup.name}, starting fresh")
+        try:
+            p.replace(backup)
+        except OSError:
+            pass
+        return {"items": []}
 
 
 def _save(path: Path, data: dict) -> None:

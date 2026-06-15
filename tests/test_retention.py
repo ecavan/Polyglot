@@ -39,3 +39,26 @@ def test_apply_retention_deletes_files_but_keeps_seen(tmp_path):
     # ...but stays "seen" so a still-in-feed episode is never re-dubbed
     assert state.is_done(p, "s", "old") is True
     assert state.is_done(p, "s", "keep") is True
+
+
+def test_apply_retention_deletes_all_recorded_files(tmp_path):
+    p = tmp_path / "processed.json"
+    # an evicted item records the full artifact set (library mp3/mp4/srt + output sidecars)
+    files = []
+    for ext in ("mp3", "mp4", "srt", "vtt", "ass"):
+        f = tmp_path / f"old.{ext}"; f.write_text("x"); files.append(f)
+    state.mark_done(p, "s", "old", "audio", files, ts=100.0)
+    state.mark_done(p, "s", "new", "audio", [tmp_path / "new.mp3"], ts=200.0)
+    retention.apply_retention(p, "s", keep=1, max_age_days=3650, now=300.0)
+    assert all(not f.exists() for f in files)             # EVERY recorded artifact deleted
+
+
+def test_apply_retention_is_idempotent(tmp_path):
+    p = tmp_path / "processed.json"
+    keep_file = tmp_path / "keep.mp3"; keep_file.write_text("y")
+    state.mark_done(p, "s", "old", "audio", [tmp_path / "old.mp3"], ts=100.0)
+    state.mark_done(p, "s", "keep", "audio", [keep_file], ts=200.0)
+    retention.apply_retention(p, "s", keep=1, max_age_days=3650, now=300.0)
+    again = retention.apply_retention(p, "s", keep=1, max_age_days=3650, now=400.0)
+    assert again == []                                   # second pass evicts nothing more
+    assert keep_file.exists()
