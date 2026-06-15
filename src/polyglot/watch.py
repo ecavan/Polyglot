@@ -28,8 +28,10 @@ def run_watch(settings, shows) -> int:
             if not res.get("ok"):
                 print(f"  FAILED {show.id}/{ep.guid}: {res.get('error')}")
                 continue
-            files = library.publish_to_library(kind, show.title, ep.title, media, res["srt"], settings)
-            state.mark_done(settings.state_path, show.id, ep.guid, kind, files, ep.title)
+            lib_files = library.publish_to_library(kind, show.title, ep.title, media, res["srt"], settings)
+            files = lib_files + res.get("files", [])   # library copies + output artifacts: all purgeable
+            state.mark_done(settings.state_path, show.id, ep.guid, kind, files, ep.title,
+                            ts=ep.published_ts)   # purge by real air date, not ingest time
             published += 1
             print(f"  published {show.id}: {ep.title}")
         evicted = retention.apply_retention(

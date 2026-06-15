@@ -13,6 +13,12 @@ def _safe_id(guid: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]", "_", guid)[:120]
 
 
+def _sub_files(subs_dir, ep_id: str) -> list[str]:
+    """Every subtitle sidecar write_subs produces (so retention can delete them all)."""
+    return [str(subs_dir / f"{ep_id}.{ext}")
+            for ext in ("srt", "vtt", "target.srt", "target.vtt", "ass")]
+
+
 def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio,
               sync_to_source=False, source_duration=None):
     """Shared dub stages (podcast + video): separate -> transcribe -> diarize ->
@@ -44,9 +50,10 @@ def process_episode(job: JobSpec, episode: Episode, settings: Settings) -> dict:
         src = download.fetch_audio(episode.media_url, work, settings.clip_seconds)
         segments, audio = dub_audio(src, job, settings, work, out_mp3)
         subtitles.write_subs(segments, audio.timeline, subs_dir, job.show_id, ep_id)
+        files = [str(out_mp3), *_sub_files(subs_dir, ep_id)]
         return {
             "ok": True, "mp3": str(out_mp3), "srt": str(subs_dir / f"{ep_id}.srt"),
-            "duration": audio.duration, "byte_length": audio.byte_length,
+            "duration": audio.duration, "byte_length": audio.byte_length, "files": files,
         }
     except Exception as e:  # episode isolation
         traceback.print_exc()
@@ -70,9 +77,10 @@ def process_video(job: JobSpec, episode: Episode, settings: Settings) -> dict:
         subtitles.write_subs(segments, audio.timeline, subs_dir, job.show_id, ep_id)
         styled_ass = subs_dir / f"{ep_id}.ass"                  # side-by-side FR/EN, burned in
         publish_video.mux(video, work / "dub.mp3", out_mp4, subtitle=styled_ass)
+        files = [str(out_mp4), *_sub_files(subs_dir, ep_id)]
         return {
             "ok": True, "mp4": str(out_mp4), "srt": str(subs_dir / f"{ep_id}.srt"),
-            "duration": audio.duration,
+            "duration": audio.duration, "files": files,
         }
     except Exception as e:  # episode isolation
         traceback.print_exc()

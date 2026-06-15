@@ -23,7 +23,7 @@ def test_to_evict_age_purges_even_within_cap():
     assert [e["guid"] for e in evict] == ["old"]
 
 
-def test_apply_retention_deletes_files_and_ledger(tmp_path):
+def test_apply_retention_deletes_files_but_keeps_seen(tmp_path):
     p = tmp_path / "processed.json"
     old_file = tmp_path / "old.mp3"
     old_file.write_text("x")
@@ -32,7 +32,10 @@ def test_apply_retention_deletes_files_and_ledger(tmp_path):
     state.mark_done(p, "s", "old", "audio", [old_file], ts=100.0)
     state.mark_done(p, "s", "keep", "audio", [keep_file], ts=200.0)
     retention.apply_retention(p, "s", keep=1, max_age_days=3650, now=300.0)
-    assert not old_file.exists()          # evicted file deleted
+    assert not old_file.exists()          # evicted file deleted from disk (freed)
     assert keep_file.exists()
-    assert state.is_done(p, "s", "old") is False
+    # evicted item is gone from the LIVE library...
+    assert [i["guid"] for i in state.published(p, "s")] == ["keep"]
+    # ...but stays "seen" so a still-in-feed episode is never re-dubbed
+    assert state.is_done(p, "s", "old") is True
     assert state.is_done(p, "s", "keep") is True
