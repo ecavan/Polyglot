@@ -1,4 +1,6 @@
+import calendar
 from dataclasses import dataclass
+from datetime import datetime
 
 import feedparser
 
@@ -11,6 +13,20 @@ class Episode:
     title: str
     published: str | None
     media_url: str
+    published_ts: float | None = None   # real air/upload date as epoch seconds (for retention age)
+
+
+def _struct_to_epoch(st) -> float | None:
+    return calendar.timegm(st) if st else None
+
+
+def _yyyymmdd_to_epoch(s: str | None) -> float | None:
+    if not s:
+        return None
+    try:
+        return calendar.timegm(datetime.strptime(s, "%Y%m%d").timetuple())
+    except (ValueError, TypeError):
+        return None
 
 
 def _episode_from_entry(e) -> Episode | None:
@@ -26,11 +42,19 @@ def _episode_from_entry(e) -> Episode | None:
         title=e.get("title", "(untitled)"),
         published=e.get("published"),
         media_url=media_url,
+        published_ts=_struct_to_epoch(e.get("published_parsed")),
     )
 
 
 def list_episodes_from_url(url: str, limit: int | None) -> list[Episode]:
     parsed = feedparser.parse(url)
+    # feedparser never raises on a dead/unreachable/malformed feed — it sets bozo and
+    # returns salvaged (often zero) entries. Surface that so a broken feed isn't silently
+    # mistaken for "no new episodes".
+    if parsed.bozo and not parsed.entries:
+        exc = parsed.get("bozo_exception")
+        print(f"  WARNING feed fetch/parse failed ({url}): {exc}")
+        return []
     out: list[Episode] = []
     for e in parsed.entries:
         ep = _episode_from_entry(e)
@@ -61,6 +85,7 @@ def list_youtube(url: str, limit: int | None, max_minutes: int = 60) -> list[Epi
             title=e.get("title", "(untitled)"),
             published=e.get("upload_date"),
             media_url=f"https://www.youtube.com/watch?v={vid}",
+            published_ts=_yyyymmdd_to_epoch(e.get("upload_date")),
         ))
         if limit and len(out) >= limit:
             break

@@ -80,10 +80,12 @@ def cmd_video(url: str, lang: str, clip_seconds: int | None, speakers: int | Non
 
 def cmd_watch() -> int:
     """Process new episodes/videos for all enabled shows -> Jellyfin library +
-    retention. Designed to run from cron."""
+    retention. Designed to run from launchd/cron; exit non-zero if any item failed
+    so the scheduler/log surfaces it."""
     from polyglot import watch
-    watch.watch()
-    return 0
+    res = watch.watch()
+    print(f"watch: published={res['published']} failed={res['failed']}")
+    return 1 if res["failed"] else 0
 
 
 def cmd_cleanup() -> int:

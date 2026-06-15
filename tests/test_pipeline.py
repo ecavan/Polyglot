@@ -67,3 +67,5 @@ def test_process_episode_writes_outputs(tmp_path, monkeypatch):
     assert out["ok"] is True
     assert Path(out["mp3"]).exists()
     assert Path(out["srt"]).exists()
+    assert Path(out["tv_mp4"]).exists()                 # static-cover MP4 with burned subs (for TV)
+    assert out["media"] == [out["mp3"], out["tv_mp4"]]   # both go to the library
