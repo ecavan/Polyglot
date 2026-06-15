@@ -30,6 +30,21 @@ download → Demucs (split voice / music bed) → mlx-whisper transcribe → Spe
 uv sync          # install deps into .venv
 ```
 
+**Translation** defaults to **Claude** (best Québécois) — provide `ANTHROPIC_API_KEY`. Without
+it, translation automatically falls back to the local Qwen model (free, offline), so the
+pipeline always works. Switch to local-only with `translate_backend = "mlx"` in
+`config/settings.toml`. Compare the options on a real episode with
+`uv run python scripts/compare_translation.py`.
+
+Put the key where **both** your shell and the scheduled `watch` job can read it (launchd does
+not load your shell profile):
+
+```bash
+mkdir -p ~/.config/polyglot
+echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.config/polyglot/env   # watch loop sources this
+echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc                 # interactive `uv run` commands
+```
+
 ## Go live (one-time)
 
 ```bash

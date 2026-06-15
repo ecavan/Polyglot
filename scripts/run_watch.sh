@@ -5,6 +5,10 @@ set -euo pipefail
 REPO="${POLYGLOT_REPO:-$(cd "$(dirname "$0")/.." && pwd -P)}"
 cd "$REPO"
 
+# launchd has no shell profile, so load secrets (e.g. ANTHROPIC_API_KEY for Claude
+# translation) from a file the user creates. Without it, translation falls back to local.
+[[ -f "$HOME/.config/polyglot/env" ]] && source "$HOME/.config/polyglot/env"
+
 # Find uv: prefer an explicit path (only if it actually exists), then PATH, then the
 # usual install locations. A stale baked-in POLYGLOT_UV must not be fatal when uv exists.
 UV="${POLYGLOT_UV:-}"

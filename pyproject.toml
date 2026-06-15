@@ -22,6 +22,7 @@ dependencies = [
     "demucs-infer>=4.1.3",
     "llama-cpp-python>=0.3.29",
     "snac>=1.2.1",
+    "anthropic>=0.109.1",
 ]
 
 [project.scripts]
