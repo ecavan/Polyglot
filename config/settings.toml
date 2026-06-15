@@ -5,10 +5,16 @@ mlx_whisper_repo   = "mlx-community/whisper-large-v3-turbo"
 faster_whisper     = "medium.en"                          # used only by faster-whisper backend
 
 # --- translation ---
-translate_backend  = "mlx"                                # "mlx" | "ollama"
-mlx_llm_repo       = "mlx-community/Qwen2.5-7B-Instruct-4bit"
-ollama_model       = "mistral"                            # used only by ollama backend
-ollama_url         = "http://localhost:11434/api/chat"
+# "gemini"/"claude" = remote LLM (best Québécois), needs the matching API key in the env
+# (GEMINI_API_KEY / ANTHROPIC_API_KEY) else auto-falls back to the local mlx model.
+# "mlx" = local Qwen only (free, offline).
+translate_backend     = "gemini"                          # "gemini" | "claude" | "mlx"
+gemini_model          = "gemini-3.1-pro-preview"
+anthropic_model       = "claude-sonnet-4-6"
+mlx_llm_repo          = "mlx-community/Qwen2.5-7B-Instruct-4bit"   # local fallback model
+translate_chunk_size  = 40                                # segments per Claude request (doc context)
+translate_context_lines = 3                               # prior lines kept for cross-chunk continuity
+translate_max_retries = 3
 
 # --- tts ---
 tts_backend        = "orpheus"                            # "orpheus" (expressive FR) | "xtts" | "piper"

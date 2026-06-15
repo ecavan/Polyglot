@@ -12,10 +12,13 @@ class Settings:
     transcribe_backend: str
     mlx_whisper_repo: str
     faster_whisper: str
-    translate_backend: str
+    translate_backend: str                # "gemini" | "claude" (remote, fall back to local) | "mlx"
     mlx_llm_repo: str
-    ollama_model: str
-    ollama_url: str
+    anthropic_model: str
+    gemini_model: str
+    translate_chunk_size: int             # segments per Claude request (document-context batch)
+    translate_context_lines: int          # prior lines shown read-only for cross-chunk continuity
+    translate_max_retries: int
     tts_backend: str
     tts_device: str
     # "self" = clone each detected speaker from the episode audio; "pool" = built-in voices
@@ -101,8 +104,11 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         faster_whisper=m["faster_whisper"],
         translate_backend=m["translate_backend"],
         mlx_llm_repo=m["mlx_llm_repo"],
-        ollama_model=m["ollama_model"],
-        ollama_url=m["ollama_url"],
+        anthropic_model=m.get("anthropic_model", "claude-sonnet-4-6"),
+        gemini_model=m.get("gemini_model", "gemini-3.1-pro-preview"),
+        translate_chunk_size=m.get("translate_chunk_size", 40),
+        translate_context_lines=m.get("translate_context_lines", 3),
+        translate_max_retries=m.get("translate_max_retries", 3),
         tts_backend=m["tts_backend"],
         tts_device=m["tts_device"],
         voice_mode=tts.get("voice_mode", "pool"),
