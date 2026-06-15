@@ -47,10 +47,6 @@ class Settings:
     voices_dir: Path
     prompts_dir: Path
     state_path: Path
-    # hosting
-    hosting_type: str
-    public_base_url: str
-    bucket: str
     # local Jellyfin library + retention
     library_path: Path
     retention_keep: int
@@ -91,7 +87,7 @@ class JobSpec:
 def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
     with open(path, "rb") as f:
         d = tomllib.load(f)
-    m, p, h, df = d["models"], d["paths"], d["hosting"], d["defaults"]
+    m, p, df = d["models"], d["paths"], d["defaults"]
     tts = d.get("tts", {})
     sep = d.get("separation", {})
     mix = d.get("mix", {})
@@ -133,9 +129,6 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         voices_dir=Path(p["voices"]),
         prompts_dir=Path(p["prompts"]),
         state_path=Path(p["state"]),
-        hosting_type=h["type"],
-        public_base_url=h["public_base_url"],
-        bucket=h["bucket"],
         library_path=Path(lib.get("path", "~/PolyglotLibrary")).expanduser(),
         retention_keep=ret.get("keep", 10),
         retention_max_age_days=ret.get("max_age_days", 7),

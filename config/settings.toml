@@ -54,13 +54,6 @@ voices  = "voices"
 prompts = "config/prompts"
 state   = "state/processed.json"
 
-[hosting]
-type            = "r2"                                    # "r2" | "local"
-public_base_url = "https://media.example.com"             # r2.dev domain or custom CNAME
-bucket          = "polyglot-media"
-# credentials come from env vars, never this file:
-#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
-
 [library]
 # Jellyfin watches Videos/ and Podcasts/ under this folder. Dubbed files + bilingual
 # .srt land here; point Jellyfin's libraries at <path>/Videos and <path>/Podcasts.

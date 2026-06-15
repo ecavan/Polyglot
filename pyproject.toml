@@ -17,8 +17,6 @@ dependencies = [
     "soundfile",
     "numpy",
     "yt-dlp",
-    "feedgen",
-    "boto3",
     "speechbrain>=1.1.0",
     "scikit-learn>=1.9.0",
     "demucs-infer>=4.1.3",
@@ -29,16 +27,9 @@ dependencies = [
 [project.scripts]
 polyglot = "polyglot.cli:main"
 
-[dependency-groups]
-dev = ["pytest"]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/polyglot"]
-
-[tool.pytest.ini_options]
-pythonpath = ["src", "."]
-testpaths = ["tests"]
