@@ -50,13 +50,15 @@ echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc                 # interac
 ```bash
 scripts/setup_jellyfin.sh        # installs Jellyfin, makes the library folders, prints your
                                  # Roku/iPhone server URL + the wizard steps
-scripts/install_schedule.sh      # launchd job: runs `polyglot watch` every 30 min
+scripts/install_schedule.sh      # launchd job: runs `polyglot watch` once a day at midnight
+                                 # (pass an hour to change, e.g. `install_schedule.sh 3` = 3 AM)
 ```
 
-Then enable a show in `config/shows.toml` (`enabled = true`). The first scheduled pass dubs the
-newest ~10 items (slow); after that it just keeps up and purges anything past the retention
-window. Logs: `~/Library/Logs/Polyglot/watch.log`. Remove the schedule with
-`scripts/uninstall_schedule.sh`.
+Then enable a show in `config/shows.toml` (`enabled = true`) and run the first populate yourself
+when convenient (`uv run polyglot watch`) — the first pass dubs the newest ~10 items and is slow.
+After that the daily run just keeps up and purges anything past the retention window. It uses
+`StartCalendarInterval`, so if the Mac is asleep at the scheduled time the run **catches up on
+wake**. Logs: `~/Library/Logs/Polyglot/watch.log`. Remove with `scripts/uninstall_schedule.sh`.
 
 ## Commands
 
