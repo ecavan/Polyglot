@@ -26,6 +26,7 @@ class Settings:
     # orpheus backend (expressive French TTS via llama.cpp GGUF + SNAC)
     orpheus_gguf: Path
     orpheus_voices: list[str]
+    orpheus_voice_pitch: list
     orpheus_temperature: float
     orpheus_max_tokens: int
     # tts expressiveness (XTTS inference params) + multi-voice
@@ -114,7 +115,8 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         tts_device=m["tts_device"],
         voice_mode=tts.get("voice_mode", "pool"),
         orpheus_gguf=Path(orph.get("gguf", str(default_gguf))),
-        orpheus_voices=orph.get("voices", ["Pierre", "Amelie", "Marie"]),
+        orpheus_voices=orph.get("voices", ["Pierre", "Pierre", "Amelie", "Marie"]),
+        orpheus_voice_pitch=orph.get("voice_pitch", [0, -3, 0, 0]),
         orpheus_temperature=orph.get("temperature", 0.7),
         orpheus_max_tokens=orph.get("max_tokens", 1800),
         tts_temperature=tts.get("temperature", 0.75),

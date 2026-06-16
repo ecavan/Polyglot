@@ -1,4 +1,6 @@
 import os
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import Callable
 
@@ -186,23 +188,47 @@ def _xtts_engine(segments, job, settings, out_dir, source_wav=None) -> Callable[
     return synth
 
 
-def assign_voices_by_size(segments: list[dict], voices: list[str]) -> dict:
-    """Assign pool voices to speakers ordered by how much they speak, so the
-    dominant speaker (the host banter) gets voices[0] (e.g. Pierre, male)."""
+def assign_voices_by_size(segments: list[dict], voices: list[str],
+                          pitches: list | None = None) -> dict:
+    """Assign pool voices to speakers ordered by how much they speak, so the dominant speaker
+    (the host) gets voices[0]. Returns spk -> (voice_name, pitch_semitones). The French model has
+    only one male voice (Pierre), so a second male host is rendered as Pierre pitched down a few
+    semitones (deeper + distinguishable); see settings [orpheus] voices / voice_pitch."""
     from collections import Counter
+    pitches = pitches or [0] * len(voices)
     counts = Counter(seg.get("speaker") or "SPEAKER_00" for seg in segments)
     ordered = [spk for spk, _ in counts.most_common()]
-    return {spk: voices[i % len(voices)] for i, spk in enumerate(ordered)}
+    out = {}
+    for i, spk in enumerate(ordered):
+        j = i % len(voices)
+        out[spk] = (voices[j], pitches[j] if j < len(pitches) else 0)
+    return out
+
+
+def _pitch_shift(wav: np.ndarray, semitones: float) -> np.ndarray:
+    """Shift pitch by `semitones` while PRESERVING duration (rubberband), so video sync and
+    the duration guard are unaffected. Used to make a second, deeper male voice from Pierre."""
+    if not semitones or len(wav) < 2048:
+        return wav
+    ratio = 2 ** (semitones / 12.0)
+    with tempfile.TemporaryDirectory() as td:
+        src, dst = Path(td) / "i.wav", Path(td) / "o.wav"
+        sf.write(str(src), wav, SR, subtype="FLOAT")
+        subprocess.run(["ffmpeg", "-y", "-i", str(src), "-filter:a", f"rubberband=pitch={ratio:.5f}",
+                        "-ar", str(SR), "-ac", "1", str(dst)], check=True, capture_output=True)
+        out, _ = sf.read(str(dst), dtype="float32")
+    return np.asarray(out, dtype=np.float32)
 
 
 def _orpheus_engine(segments, settings) -> Callable[[dict], np.ndarray]:
     from polyglot import orpheus_tts
     base = orpheus_tts.build_synth(settings)
-    voice_for = assign_voices_by_size(segments, settings.orpheus_voices)
+    voice_for = assign_voices_by_size(segments, settings.orpheus_voices, settings.orpheus_voice_pitch)
 
     def synth(seg: dict) -> np.ndarray:
         spk = seg.get("speaker") or "SPEAKER_00"
-        return base(seg["translation"], voice_for[spk])
+        name, pitch = voice_for[spk]
+        return _pitch_shift(base(seg["translation"], name), pitch)
 
     return synth
 

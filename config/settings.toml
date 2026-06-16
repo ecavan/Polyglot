@@ -38,7 +38,10 @@ voice_pool         = ["Viktor Eka", "Andrew Chipper", "Craig Gutsy", "Damien Bla
 [orpheus]
 # Expressive French TTS (canopylabs/lex-au Orpheus 3B, GGUF via llama.cpp + SNAC).
 # gguf defaults to ~/.cache/polyglot/orpheus/Orpheus-3b-French-FT-Q8_0.gguf
-voices      = ["Pierre", "Amelie", "Marie"]   # Pierre=male, Amelie/Marie=female (French)
+# Only Pierre is male, so a 2nd male host = Pierre pitched deeper. Speakers are assigned by how
+# much they talk: loudest -> voices[0], next -> voices[1], etc. voice_pitch is parallel (semitones).
+voices      = ["Pierre", "Pierre", "Amelie", "Marie"]   # main hosts male; minor/ad-read -> female
+voice_pitch = [0, -3, 0, 0]                             # 2nd host: Pierre, 3 semitones deeper
 temperature = 0.7                              # higher => more expressive (0.6 base; >~0.8 risks instability)
 max_tokens  = 1800
 
