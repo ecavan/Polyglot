@@ -16,7 +16,7 @@ dependencies = [
     "requests",
     "soundfile",
     "numpy",
-    "yt-dlp",
+    "yt-dlp[default]",
     "speechbrain>=1.1.0",
     "scikit-learn>=1.9.0",
     "demucs-infer>=4.1.3",
