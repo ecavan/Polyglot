@@ -28,7 +28,8 @@ with left:
             with st.spinner("Reading video info…"):
                 m = download.video_metadata(url.strip())
             jobs.add_video(settings, url.strip(), title=m["title"], channel=m["channel"],
-                           video_id=m["video_id"], duration=m["duration"])
+                           video_id=m["video_id"], duration=m["duration"],
+                           published_ts=m.get("published_ts"))
             mins = m["duration"] / 60
             st.success(f"Queued: {m['title']} — {m['channel']} ({mins:.0f} min)")
             if mins > settings.max_video_minutes:
@@ -85,11 +86,11 @@ st.subheader("📚 Library")
 items = jobs.library_items(settings)
 total_gb = sum(i["size_mb"] for i in items) / 1000
 st.caption(f"{len(items)} items · {total_gb:.2f} GB on disk")
-for it in sorted(items, key=lambda x: x.get("published_at", 0), reverse=True):
+for idx, it in enumerate(sorted(items, key=lambda x: x.get("published_at", 0), reverse=True)):
     a, b, c = st.columns([6, 1, 1])
     a.write(f"**{it.get('title', '')[:80]}**  ·  _{it.get('kind', '')}_")
     b.write(f"{it['size_mb']:.0f} MB")
-    if c.button("🗑 Delete", key="del_" + it["show_id"] + it["guid"]):
+    if c.button("🗑 Delete", key=f"del_{idx}"):       # index key: always unique, no collisions
         jobs.delete_item(settings, it["show_id"], it["guid"])
         st.toast("Deleted — space freed; it can be re-pulled.")
         st.rerun()

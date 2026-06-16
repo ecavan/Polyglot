@@ -65,6 +65,7 @@ def build_ydl_opts(out_dir: Path, clip_seconds: int) -> dict:
 def video_metadata(url: str) -> dict:
     """Quick metadata (no download) for a YouTube URL — id, title, channel, duration (sec)."""
     from yt_dlp import YoutubeDL
+    from polyglot.feeds import _yyyymmdd_to_epoch
     with YoutubeDL({"quiet": True, "noprogress": True, "skip_download": True}) as ydl:
         info = ydl.extract_info(url, download=False)
     return {
@@ -72,6 +73,7 @@ def video_metadata(url: str) -> dict:
         "title": info.get("title", "(video)"),
         "channel": info.get("channel") or info.get("uploader") or "YouTube",
         "duration": info.get("duration") or 0,
+        "published_ts": _yyyymmdd_to_epoch(info.get("upload_date")),
     }
 
 

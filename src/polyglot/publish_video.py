@@ -51,7 +51,11 @@ def mux(video_path: Path, audio_path: Path, out_mp4: Path, subtitle: Path | None
     if delta > 0.1:
         vf_parts.append(f"tpad=stop_mode=clone:stop_duration={delta:.3f}")
     if height:
-        vf_parts.append(f"scale=-2:{height}")          # downscale (720p) -> smaller files
+        # fit into a 16:9 box of this height and letterbox if the source isn't 16:9, so the
+        # burned side-by-side .ass (authored for 16:9 / 1920x1080) stays correctly positioned.
+        w = (int(height * 16 / 9) // 2) * 2
+        vf_parts.append(f"scale={w}:{height}:force_original_aspect_ratio=decrease,"
+                        f"pad={w}:{height}:(ow-iw)/2:(oh-ih)/2:black")
     if subtitle is not None:
         if str(subtitle).endswith(".ass"):
             vf_parts.append(f"ass={_escape_sub(subtitle)}")          # styled side-by-side (libass)

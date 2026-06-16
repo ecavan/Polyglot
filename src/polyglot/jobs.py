@@ -72,9 +72,9 @@ def list_jobs(settings) -> list[dict]:
     return _read(settings)["jobs"]
 
 
-def add_video(settings, url, title="", channel="", video_id="", duration=0) -> dict:
+def add_video(settings, url, title="", channel="", video_id="", duration=0, published_ts=None) -> dict:
     job = _job(type="video", url=url, title=title or url, channel=channel or "YouTube",
-               video_id=video_id, duration=duration)
+               video_id=video_id, duration=duration, published_ts=published_ts)
     _mutate(settings, lambda d: d["jobs"].append(job))
     return job
 
@@ -127,11 +127,20 @@ def library_items(settings) -> list[dict]:
 
 def delete_item(settings, show_id, guid):
     """Delete an item's files (frees space) and drop it from the ledger so it can be re-pulled."""
+    dirs = set()
     for it in state._load(settings.state_path)["items"]:
         if it["show_id"] == show_id and it["guid"] == guid:
             for f in it.get("files", []):
-                Path(f).unlink(missing_ok=True)
+                p = Path(f)
+                p.unlink(missing_ok=True)
+                dirs.add(p.parent)
     state.remove(settings.state_path, show_id, guid)
+    for d in dirs:                                  # tidy now-empty show folders
+        try:
+            if d.is_dir() and d != settings.library_path and not any(d.iterdir()):
+                d.rmdir()
+        except OSError:
+            pass
 
 
 # ---------------------------------------------------------------- dubbing
@@ -154,7 +163,8 @@ def _run_video(settings, job):
         return
     js = JobSpec(show_id, job.get("channel", "YouTube"), url, "youtube", "fr",
                  settings.prompts_dir / "fr.txt", [], settings)
-    ep = Episode(guid=vid, title=job.get("title") or "(video)", published=None, media_url=url)
+    ep = Episode(guid=vid, title=job.get("title") or "(video)", published=None, media_url=url,
+                 published_ts=job.get("published_ts"))
     ep_id = pipeline._safe_id(vid)
     try:
         res = pipeline.process_video(js, ep, settings)
@@ -207,7 +217,9 @@ def _load_secrets():
         line = line[7:] if line.startswith("export ") else line
         if "=" in line and not line.startswith("#"):
             k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+            k = k.strip()
+            if not os.environ.get(k):      # fill if missing OR empty (the file is the source of truth)
+                os.environ[k] = v.strip().strip('"').strip("'")
 
 
 @contextmanager
@@ -233,6 +245,13 @@ def drain() -> int:
         if not acquired:
             print("[worker] another worker is already running; exiting")
             return 0
+        # reclaim any job a previously-crashed/killed worker left mid-flight (we hold the lock,
+        # so no other worker owns it) — otherwise it'd be stuck 'running' forever.
+        def _reset(d):
+            for j in d["jobs"]:
+                if j["status"] == "running":
+                    j["status"] = "pending"
+        _mutate(base, _reset)
         n = 0
         while True:
             settings = load_settings()              # fresh per job (video mutates speaker/speed)

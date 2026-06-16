@@ -1,6 +1,23 @@
+import fcntl
 import json
 import time
+from contextlib import contextmanager
 from pathlib import Path
+
+
+@contextmanager
+def _lock(state_path: Path):
+    """Serialize ledger read-modify-write across processes (the worker and the app both
+    mutate processed.json), so concurrent writes can't lose each other's changes."""
+    p = Path(state_path).parent / ".state.lock"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    f = open(p, "w")
+    try:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(f, fcntl.LOCK_UN)
+        f.close()
 
 
 def _load(path: Path) -> dict:
@@ -47,9 +64,14 @@ def is_done(state_path: Path, show_id: str, guid: str) -> bool:
 
 def mark_done(state_path: Path, show_id: str, guid: str, kind: str,
               files: list, title: str = "", ts: float | None = None) -> None:
-    data = _load(state_path)
-    if _find(data, show_id, guid) is not None:
-        return
+    with _lock(state_path):
+        data = _load(state_path)
+        if _find(data, show_id, guid) is not None:
+            return
+        _append(state_path, data, show_id, guid, kind, files, title, ts)
+
+
+def _append(state_path, data, show_id, guid, kind, files, title, ts):
     data["items"].append({
         "show_id": show_id, "guid": guid, "kind": kind, "title": title,
         "files": [str(f) for f in files],
@@ -69,18 +91,20 @@ def published(state_path: Path, show_id: str) -> list[dict]:
 def mark_purged(state_path: Path, show_id: str, guid: str) -> None:
     """Retention eviction: keep the ledger entry (so is_done stays True) but mark
     it purged and forget its files — the files themselves are deleted by the caller."""
-    data = _load(state_path)
-    item = _find(data, show_id, guid)
-    if item is None or item.get("purged"):
-        return
-    item["purged"] = True
-    item["files"] = []
-    _save(state_path, data)
+    with _lock(state_path):
+        data = _load(state_path)
+        item = _find(data, show_id, guid)
+        if item is None or item.get("purged"):
+            return
+        item["purged"] = True
+        item["files"] = []
+        _save(state_path, data)
 
 
 def remove(state_path: Path, show_id: str, guid: str) -> None:
     """Hard-delete a ledger entry entirely (forgets it was ever seen)."""
-    data = _load(state_path)
-    data["items"] = [i for i in data["items"]
-                     if not (i["show_id"] == show_id and i["guid"] == guid)]
-    _save(state_path, data)
+    with _lock(state_path):
+        data = _load(state_path)
+        data["items"] = [i for i in data["items"]
+                         if not (i["show_id"] == show_id and i["guid"] == guid)]
+        _save(state_path, data)
