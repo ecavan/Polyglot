@@ -89,6 +89,23 @@ def build_ass(segments: list[dict], timeline: list[tuple[float, float]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def lrc_timestamp(seconds: float) -> str:
+    cs = int(round(seconds * 100))
+    m, cs = divmod(cs, 6000)
+    s, cs = divmod(cs, 100)
+    return f"[{m:02d}:{s:02d}.{cs:02d}]"
+
+
+def build_lrc(segments: list[dict], timeline: list[tuple[float, float]]) -> str:
+    """Synced French lyrics for the podcast .mp3 — Finamp / the Jellyfin app render this as a
+    scrolling, karaoke-style transcript while the audio plays (read-along on the phone)."""
+    lines = []
+    for seg, (start, _end) in zip(segments, timeline):
+        text = seg["translation"].replace("\n", " ").strip()
+        lines.append(f"{lrc_timestamp(start)}{text}")
+    return "\n".join(lines) + "\n"
+
+
 def write_subs(segments, timeline, out_dir: Path, show_id: str, ep_id: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{ep_id}.srt").write_text(build_srt(segments, timeline, True), encoding="utf-8")
@@ -96,3 +113,4 @@ def write_subs(segments, timeline, out_dir: Path, show_id: str, ep_id: str) -> N
     (out_dir / f"{ep_id}.target.srt").write_text(build_srt(segments, timeline, False), encoding="utf-8")
     (out_dir / f"{ep_id}.target.vtt").write_text(build_vtt(segments, timeline, False), encoding="utf-8")
     (out_dir / f"{ep_id}.ass").write_text(build_ass(segments, timeline), encoding="utf-8")  # styled side-by-side
+    (out_dir / f"{ep_id}.lrc").write_text(build_lrc(segments, timeline), encoding="utf-8")  # synced lyrics (mp3)

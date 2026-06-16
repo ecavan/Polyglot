@@ -16,7 +16,7 @@ def _safe_id(guid: str) -> str:
 def _sub_files(subs_dir, ep_id: str) -> list[str]:
     """Every subtitle sidecar write_subs produces (so retention can delete them all)."""
     return [str(subs_dir / f"{ep_id}.{ext}")
-            for ext in ("srt", "vtt", "target.srt", "target.vtt", "ass")]
+            for ext in ("srt", "vtt", "target.srt", "target.vtt", "ass", "lrc")]
 
 
 def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio,
@@ -57,6 +57,7 @@ def process_episode(job: JobSpec, episode: Episode, settings: Settings) -> dict:
             "ok": True, "mp3": str(out_mp3), "tv_mp4": str(tv_mp4),
             "media": [str(out_mp3), str(tv_mp4)],   # phone (mp3) + TV (mp4) -> both into library
             "srt": str(subs_dir / f"{ep_id}.srt"),
+            "lrc": str(subs_dir / f"{ep_id}.lrc"),  # synced lyrics shipped beside the mp3
             "duration": audio.duration, "byte_length": audio.byte_length, "files": files,
         }
     except Exception as e:  # episode isolation

@@ -30,16 +30,16 @@ def _copy_mp3_tagged(src: Path, dst: Path, title: str, album: str) -> None:
 
 
 def publish_to_library(kind: str, show_title: str, ep_title: str, media_srcs,
-                       settings: Settings, ep_id: str = "") -> list[Path]:
+                       settings: Settings, ep_id: str = "", lrc_src: Path | None = None) -> list[Path]:
     """Copy the dubbed media into the Jellyfin library. `media_srcs` may be a single path or a
     list (podcasts publish both an .mp3 for screen-off phone listening and a subtitle-burned
     .mp4 for read-along). The episode id is appended to the basename so two distinct episodes
     with the same title can't overwrite each other.
 
     Files are routed by type (see _subdir): podcast .mp3 -> PodcastAudio/ (Music library, tagged
-    by show), podcast .mp4 -> Podcasts/, other video -> Videos/. No sidecar .srt is shipped: the
-    transcript is BURNED INTO the video (a sidecar would render as doubled centered subtitles, and
-    a Music library wouldn't show it anyway)."""
+    by show), podcast .mp4 -> Podcasts/, other video -> Videos/. The podcast .mp3 also gets a
+    same-basename .lrc (synced French lyrics) so Finamp/Jellyfin show a scrolling transcript while
+    you listen. No sidecar .srt: the video transcript is BURNED IN (a sidecar would double up)."""
     if isinstance(media_srcs, (str, Path)):
         media_srcs = [media_srcs]
     base = safe_name(ep_title)
@@ -54,11 +54,16 @@ def publish_to_library(kind: str, show_title: str, ep_title: str, media_srcs,
             if suffix == ".mp3":
                 dest = dest_dir / f"{base}.mp3"
                 _copy_mp3_tagged(m, dest, title=ep_title, album=show_title)
+                out.append(dest)
+                if lrc_src:                         # synced lyrics next to the audio
+                    lrc_dest = dest_dir / f"{base}.lrc"
+                    shutil.copy2(lrc_src, lrc_dest)
+                    out.append(lrc_dest)
             else:                                   # podcast TV video labelled, other video plain
                 stem = f"{base} (TV)" if kind == "audio" else base
                 dest = dest_dir / f"{stem}{suffix}"
                 shutil.copy2(m, dest)
-            out.append(dest)
+                out.append(dest)
     except Exception:
         for p in out:                               # don't leave a half-published item behind
             p.unlink(missing_ok=True)
