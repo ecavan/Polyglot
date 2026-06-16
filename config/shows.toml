@@ -1,26 +1,60 @@
+# Shows to dub. RSS = podcasts (audio -> mp3 + subtitle mp4), youtube = videos.
+# Voice omitted -> built-in Orpheus French voices.
+
+# --- Podcasts ---
 [[show]]
 id          = "pti-fr"
 title       = "PTI (Français)"
-source      = "https://feeds.megaphone.fm/ESP7239282233"   # PTI (ESPN) — verified 2026-06-14
+source      = "https://feeds.megaphone.fm/ESP7239282233"   # PTI (ESPN)
 source_type = "rss"
 target_lang = "fr"
-# voice omitted for Phase 1 -> built-in XTTS speaker. Add `voice = "fr_montreal"` once you
-# have a reference clip (see docs/setup/setup-notes.md).
 enabled     = true
 
-# YouTube source: `watch` dubs new videos (<= max_video_minutes) into the Jellyfin
-# library. enabled=false by default — flip to true when you're ready (each new video
-# is a full dub and takes a while).
 [[show]]
-id          = "gotham-fr"
-title       = "GothamChess (Français)"
-source      = "https://www.youtube.com/@GothamChess/videos"
+id          = "nbc-news-fr"
+title       = "NBC Nightly News (Français)"
+source      = "https://podcastfeeds.nbcnews.com/l7jK75d0"   # NBC Nightly News w/ Tom Llamas (~19 min)
+source_type = "rss"
+target_lang = "fr"
+enabled     = true
+
+[[show]]
+id          = "meet-press-fr"
+title       = "Meet the Press (Français)"
+source      = "https://podcastfeeds.nbcnews.com/yf3E6y7x"
+source_type = "rss"
+target_lang = "fr"
+enabled     = true
+
+[[show]]
+id          = "bluejays-fr"
+title       = "Blue Jays Happy Hour (Français)"
+source      = "https://feeds.acast.com/public/shows/65fc95494538810017c9910f"
+source_type = "rss"
+target_lang = "fr"
+enabled     = true
+
+[[show]]
+id          = "canadaland-fr"
+title       = "Canadaland (Français)"
+source      = "https://feeds.acast.com/public/shows/630ceae33fe37400122828c6"
+source_type = "rss"
+target_lang = "fr"
+enabled     = true
+
+# --- Videos (YouTube; only items <= max_video_minutes are dubbed) ---
+[[show]]
+id          = "hustler-fr"
+title       = "Hustler Casino Live (Français)"
+source      = "https://www.youtube.com/@HustlerCasinoLive/videos"   # short highlights, not the long streams
 source_type = "youtube"
 target_lang = "fr"
-enabled     = false
+enabled     = true
 
-# Adding Italian later = this block + a config/prompts/it.txt. No code change.
-# [[show]]
-# id = "thedaily-it"; title = "The Daily (Italiano)"
-# source = "..."; source_type = "rss"
-# target_lang = "it"; voice = "it_rai"; enabled = true
+[[show]]
+id          = "tushi-fr"
+title       = "sadisticTushi (Français)"
+source      = "https://www.youtube.com/channel/UCNCwk2YndqegSmcMRDoIkdQ/videos"
+source_type = "youtube"
+target_lang = "fr"
+enabled     = true
