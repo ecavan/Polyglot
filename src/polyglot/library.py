@@ -1,5 +1,6 @@
 import re
 import shutil
+import subprocess
 from pathlib import Path
 
 from polyglot.config import Settings
@@ -9,22 +10,38 @@ def safe_name(s: str) -> str:
     return re.sub(r"[^\w\- ]", "_", s).strip()[:120] or "episode"
 
 
-def publish_to_library(kind: str, show_title: str, ep_title: str, media_srcs,
-                       settings: Settings, ep_id: str = "", srt_src: Path | None = None) -> list[Path]:
-    """Copy the dubbed media into the Jellyfin library folder. `media_srcs` may be a single
-    path or a list (podcasts publish both the .mp3 for the phone and a subtitle-burned .mp4
-    for the TV). The episode id is appended to the basename so two distinct episodes with the
-    same human title can't overwrite each other. kind: "video" -> Videos/, else -> Podcasts/.
+def _subdir(kind: str, suffix: str) -> str:
+    """Which Jellyfin library folder a file belongs in. Jellyfin only surfaces audio in a
+    Music-type library, so podcast .mp3s go to a dedicated PodcastAudio/ (point a *Music*
+    library at it); the burned-in podcast video goes to Podcasts/, and everything else to Videos/."""
+    if kind != "audio":
+        return "Videos"
+    return "PodcastAudio" if suffix == ".mp3" else "Podcasts"
 
-    Subtitles: VIDEO files have the FR/EN transcript BURNED IN, so they get NO sidecar (Jellyfin
-    would render a sidecar as a second centered subtitle on top). PODCASTS ship a bilingual .srt
-    next to the audio-only .mp3 (read-along on the phone); the companion TV .mp4 is named
-    "... (TV).mp4" so that .srt does NOT also attach to it and double up over its burned-in subs."""
+
+def _copy_mp3_tagged(src: Path, dst: Path, title: str, album: str) -> None:
+    """Copy an .mp3 setting ID3 tags so it lists cleanly in a Music library (grouped by show)."""
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", str(src), "-c", "copy",
+         "-metadata", f"title={title}", "-metadata", f"album={album}",
+         "-metadata", f"artist={album}", "-metadata", "genre=Podcast", str(dst)],
+        check=True, capture_output=True,
+    )
+
+
+def publish_to_library(kind: str, show_title: str, ep_title: str, media_srcs,
+                       settings: Settings, ep_id: str = "") -> list[Path]:
+    """Copy the dubbed media into the Jellyfin library. `media_srcs` may be a single path or a
+    list (podcasts publish both an .mp3 for screen-off phone listening and a subtitle-burned
+    .mp4 for read-along). The episode id is appended to the basename so two distinct episodes
+    with the same title can't overwrite each other.
+
+    Files are routed by type (see _subdir): podcast .mp3 -> PodcastAudio/ (Music library, tagged
+    by show), podcast .mp4 -> Podcasts/, other video -> Videos/. No sidecar .srt is shipped: the
+    transcript is BURNED INTO the video (a sidecar would render as doubled centered subtitles, and
+    a Music library wouldn't show it anyway)."""
     if isinstance(media_srcs, (str, Path)):
         media_srcs = [media_srcs]
-    sub = "Videos" if kind == "video" else "Podcasts"
-    dest_dir = settings.library_path / sub / safe_name(show_title)
-    dest_dir.mkdir(parents=True, exist_ok=True)
     base = safe_name(ep_title)
     if ep_id:
         base = f"{base} [{safe_name(ep_id)[:12]}]"
@@ -32,18 +49,18 @@ def publish_to_library(kind: str, show_title: str, ep_title: str, media_srcs,
     try:
         for m in media_srcs:
             suffix = Path(m).suffix
-            # podcast TV video gets a distinct stem so the sidecar .srt (which matches the .mp3)
-            # doesn't also attach to it and render doubled subtitles over the burned-in ones.
-            stem = f"{base} (TV)" if (kind == "audio" and suffix == ".mp4") else base
-            media_dest = dest_dir / f"{stem}{suffix}"
-            shutil.copy2(m, media_dest)
-            out.append(media_dest)
-        if kind == "audio" and srt_src:        # read-along transcript for the audio-only .mp3
-            srt_dest = dest_dir / f"{base}.srt"
-            shutil.copy2(srt_src, srt_dest)
-            out.append(srt_dest)
-    except OSError:
-        for p in out:                          # don't leave a half-published item behind
+            dest_dir = settings.library_path / _subdir(kind, suffix) / safe_name(show_title)
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            if suffix == ".mp3":
+                dest = dest_dir / f"{base}.mp3"
+                _copy_mp3_tagged(m, dest, title=ep_title, album=show_title)
+            else:                                   # podcast TV video labelled, other video plain
+                stem = f"{base} (TV)" if kind == "audio" else base
+                dest = dest_dir / f"{stem}{suffix}"
+                shutil.copy2(m, dest)
+            out.append(dest)
+    except Exception:
+        for p in out:                               # don't leave a half-published item behind
             p.unlink(missing_ok=True)
         raise
     return out
