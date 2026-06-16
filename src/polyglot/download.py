@@ -3,6 +3,14 @@ from pathlib import Path
 
 import requests
 
+# Some podcast CDNs (e.g. Acast) 403 the default "python-requests" User-Agent as a bot.
+# Send a normal browser UA so downloads behave like any podcast client.
+_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+    "Accept": "*/*",
+}
+
 
 def ffmpeg_normalize_cmd(src: Path, dst: Path, clip_seconds: int) -> list[str]:
     # Full-quality stereo 44.1 kHz — what Demucs wants for separation.
@@ -14,7 +22,7 @@ def ffmpeg_normalize_cmd(src: Path, dst: Path, clip_seconds: int) -> list[str]:
 
 
 def _download_to(url: str, dst: Path) -> Path:
-    with requests.get(url, stream=True, timeout=120) as r:
+    with requests.get(url, stream=True, timeout=120, headers=_HEADERS) as r:
         r.raise_for_status()
         with open(dst, "wb") as f:
             for chunk in r.iter_content(chunk_size=1 << 16):
