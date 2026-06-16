@@ -116,8 +116,11 @@ def _gemini_caller(settings: Settings) -> Callable[[str, str, int], list[str]]:
             "generationConfig": {
                 "responseMimeType": "application/json",     # force a clean JSON array back
                 "responseSchema": {"type": "ARRAY", "items": {"type": "STRING"}},
+                # translation needs little reasoning; "low" cuts thinking tokens so they don't
+                # eat the whole budget and truncate the output to empty (-> false fallback).
+                "thinkingConfig": {"thinkingLevel": "low"},
                 "temperature": settings.temperature,
-                "maxOutputTokens": max(4096, n * 150),
+                "maxOutputTokens": max(16384, n * 200),     # generous ceiling: thinking + output
             },
         }
         last = None
