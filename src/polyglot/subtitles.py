@@ -97,12 +97,17 @@ def lrc_timestamp(seconds: float) -> str:
 
 
 def build_lrc(segments: list[dict], timeline: list[tuple[float, float]]) -> str:
-    """Synced French lyrics for the podcast .mp3 — Finamp / the Jellyfin app render this as a
-    scrolling, karaoke-style transcript while the audio plays (read-along on the phone)."""
+    """Synced BILINGUAL lyrics for the podcast .mp3 — Finamp / the Jellyfin app render this as a
+    scrolling, karaoke-style transcript while the audio plays. Each cue emits the French line
+    (what you hear) and the English line at the same timestamp, so both read together."""
     lines = []
     for seg, (start, _end) in zip(segments, timeline):
-        text = seg["translation"].replace("\n", " ").strip()
-        lines.append(f"{lrc_timestamp(start)}{text}")
+        ts = lrc_timestamp(start)
+        fr = seg["translation"].replace("\n", " ").strip()
+        en = seg.get("text", "").replace("\n", " ").strip()
+        lines.append(f"{ts}{fr}")
+        if en:
+            lines.append(f"{ts}{en}")
     return "\n".join(lines) + "\n"
 
 
