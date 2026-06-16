@@ -58,6 +58,7 @@ class Settings:
     clip_seconds: int
     max_video_minutes: int
     video_speed: float
+    video_height: int
     diarize: bool
     temperature: float
     max_tokens: int
@@ -141,6 +142,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         clip_seconds=df["clip_seconds"],
         max_video_minutes=df.get("max_video_minutes", 60),
         video_speed=df.get("video_speed", 1.1),
+        video_height=df.get("video_height", 720),
         diarize=df["diarize"],
         temperature=df["temperature"],
         max_tokens=df["max_tokens"],

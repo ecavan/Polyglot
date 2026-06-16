@@ -19,6 +19,21 @@ download → Demucs (split voice / music bed) → mlx-whisper transcribe → Spe
 - The unattended `watch` loop pulls new items, dubs them, publishes to the library, and prunes
   old ones — idempotent (never re-dubs) and self-cleaning.
 
+## Control panel (day-to-day)
+
+```bash
+uv run polyglot app          # opens the control panel in your browser
+```
+
+- **Add a video** — paste a YouTube URL; **Add a podcast** — pick a show → latest episode.
+- Jobs go in a **queue** and dub **one at a time**. Hit **Run queue** before bed; a detached
+  worker drains it overnight and stops (you can close the tab). Keep the API key readable by
+  the worker via `~/.config/polyglot/env` (see Translation below).
+- **Library** tab lists everything with size + a **Delete** button that frees the space and
+  lets the item be re-pulled later. This is how you watch-then-delete videos (the space hogs).
+
+Videos are best added here on demand; podcasts can be added here too or left to the schedule.
+
 ## Requirements
 
 - Apple Silicon Mac (tuned for an **M3 Pro / 18 GB**), macOS

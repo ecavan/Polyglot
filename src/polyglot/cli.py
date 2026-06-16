@@ -95,6 +95,22 @@ def cmd_cleanup() -> int:
     return 0
 
 
+def cmd_worker() -> int:
+    """Drain the on-demand dub queue (one job at a time), then exit. Spawned by the app."""
+    from polyglot import jobs
+    jobs.drain()
+    return 0
+
+
+def cmd_app() -> int:
+    """Launch the Streamlit control panel."""
+    import subprocess
+    import sys
+    from pathlib import Path
+    app = Path(__file__).parent / "app.py"
+    return subprocess.call([sys.executable, "-m", "streamlit", "run", str(app)])
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="polyglot")
     sub = parser.add_subparsers(dest="command")
@@ -117,6 +133,8 @@ def main() -> int:
 
     sub.add_parser("watch", help="process new items for all enabled shows -> library (cron)")
     sub.add_parser("cleanup", help="purge transient cache/")
+    sub.add_parser("worker", help="drain the on-demand dub queue, then exit")
+    sub.add_parser("app", help="launch the Streamlit control panel")
 
     args = parser.parse_args()
 
@@ -130,6 +148,10 @@ def main() -> int:
         return cmd_watch()
     if args.command == "cleanup":
         return cmd_cleanup()
+    if args.command == "worker":
+        return cmd_worker()
+    if args.command == "app":
+        return cmd_app()
     parser.print_help()
     return 0
 

@@ -51,7 +51,8 @@ def process_episode(job: JobSpec, episode: Episode, settings: Settings) -> dict:
         segments, audio = dub_audio(src, job, settings, work, out_mp3)
         subtitles.write_subs(segments, audio.timeline, subs_dir, job.show_id, ep_id)
         tv_mp4 = audio_dir / f"{ep_id}.tv.mp4"   # static-cover video w/ burned FR/EN subs, for the TV
-        publish_video.make_audio_video(out_mp3, subs_dir / f"{ep_id}.ass", tv_mp4)
+        publish_video.make_audio_video(out_mp3, subs_dir / f"{ep_id}.ass", tv_mp4,
+                                       height=settings.video_height)
         files = [str(out_mp3), str(tv_mp4), *_sub_files(subs_dir, ep_id)]
         return {
             "ok": True, "mp3": str(out_mp3), "tv_mp4": str(tv_mp4),
@@ -81,7 +82,8 @@ def process_video(job: JobSpec, episode: Episode, settings: Settings) -> dict:
                                     sync_to_source=True, source_duration=source_duration)
         subtitles.write_subs(segments, audio.timeline, subs_dir, job.show_id, ep_id)
         styled_ass = subs_dir / f"{ep_id}.ass"                  # side-by-side FR/EN, burned in
-        publish_video.mux(video, work / "dub.mp3", out_mp4, subtitle=styled_ass)
+        publish_video.mux(video, work / "dub.mp3", out_mp4, subtitle=styled_ass,
+                          height=settings.video_height)
         files = [str(out_mp4), *_sub_files(subs_dir, ep_id)]
         return {
             "ok": True, "mp4": str(out_mp4), "media": [str(out_mp4)],

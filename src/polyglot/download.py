@@ -62,6 +62,19 @@ def build_ydl_opts(out_dir: Path, clip_seconds: int) -> dict:
     return opts
 
 
+def video_metadata(url: str) -> dict:
+    """Quick metadata (no download) for a YouTube URL — id, title, channel, duration (sec)."""
+    from yt_dlp import YoutubeDL
+    with YoutubeDL({"quiet": True, "noprogress": True, "skip_download": True}) as ydl:
+        info = ydl.extract_info(url, download=False)
+    return {
+        "video_id": info.get("id", ""),
+        "title": info.get("title", "(video)"),
+        "channel": info.get("channel") or info.get("uploader") or "YouTube",
+        "duration": info.get("duration") or 0,
+    }
+
+
 def fetch_video(url: str, out_dir: Path, clip_seconds: int = 0, max_minutes: int = 60) -> Path:
     """Download a YouTube video (video+audio merged to mp4). Rejects videos longer
     than max_minutes. clip_seconds>0 downloads only the first N seconds (for testing)."""

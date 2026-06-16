@@ -71,8 +71,9 @@ max_age_days = 7     # also purge anything older than this (weekly window)
 
 [defaults]
 clip_seconds      = 0        # 0 = full episode; >0 = trim (handy for testing)
-max_video_minutes = 60       # skip YouTube videos longer than this (sweet spot ~15-30 min)
+max_video_minutes = 90       # skip videos longer than this (allows 30-45 min shows, blocks 10h streams)
 video_speed       = 1.0       # speed bias for video dubs (fit-to-timeline; 1.0 = natural pace)
+video_height      = 720       # downscale burned video to this height (720p; small files, fine for TV)
 diarize           = true     # label speakers -> assign distinct voices
 num_speakers      = 3        # expected speakers: PTI = opening ad + 2 hosts (1 = solo; 0 = auto)
 diarize_threshold = 0.5      # cosine distance for auto-detect mode (num_speakers = 0 only)
