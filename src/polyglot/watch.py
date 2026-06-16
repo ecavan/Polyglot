@@ -54,7 +54,7 @@ def _process_show(show, settings, shows) -> dict:
                 continue
             media = res.get("media") or [res.get("mp4") or res.get("mp3")]
             lib_files = library.publish_to_library(kind, show.title, ep.title, media,
-                                                   settings, ep_id=ep_id)
+                                                   settings, ep_id=ep_id, srt_src=res.get("srt"))
             files = lib_files + res.get("files", [])   # library copies + output artifacts: all purgeable
             state.mark_done(settings.state_path, show.id, ep.guid, kind, files, ep.title,
                             ts=ep.published_ts)   # purge by real air date, not ingest time

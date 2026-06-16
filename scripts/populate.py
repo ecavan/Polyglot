@@ -57,7 +57,7 @@ def main(argv: list[str]) -> int:
                     continue
                 media = res.get("media") or [res.get("mp4") or res.get("mp3")]
                 files = library.publish_to_library(kind, show.title, ep.title, media,
-                                                   settings, ep_id=ep_id)
+                                                   settings, ep_id=ep_id, srt_src=res.get("srt"))
                 files += res.get("files", [])
                 state.mark_done(settings.state_path, sid, ep.guid, kind, files, ep.title,
                                 ts=ep.published_ts)
