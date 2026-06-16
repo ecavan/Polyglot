@@ -80,11 +80,19 @@ uv run polyglot cleanup                        # purge the transient cache/
 
 ## Library layout (what Jellyfin reads)
 
+Three Jellyfin libraries, because Jellyfin only surfaces audio in a *Music* library:
+
 ```
 ~/PolyglotLibrary/
-  Videos/<show>/<title> [id].mp4   + .srt
-  Podcasts/<show>/<title> [id].mp3 + .srt   (+ <title> [id].mp4 for the TV)
+  Videos/<show>/<title> [id].mp4                 -> "Home videos and photos" library  (burned-in transcript)
+  Podcasts/<show>/<title> [id] (TV).mp4          -> "Home videos and photos" library  (podcast read-along on TV/phone)
+  PodcastAudio/<show>/<title> [id].mp3 + .lrc    -> "Music" library  (screen-off phone listening + synced lyrics)
 ```
+
+- **Video** = transcript burned in (no sidecar — a sidecar would render doubled).
+- **Podcast audio** (`.mp3`) lives in a Music library for screen-off, offline phone listening
+  (Finamp or the Jellyfin app); the `.lrc` gives a scrolling read-along transcript while it plays.
+- **Podcast video** (`(TV).mp4`) is the burned-in read-along for when you want to watch/read.
 
 Retention keeps the newest `keep` items per show and purges anything older than
 `max_age_days` (by the episode's real air date), deleting the files but remembering it already
