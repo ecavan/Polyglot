@@ -1,5 +1,6 @@
 # Shows to dub. RSS = podcasts (audio -> mp3 + subtitle mp4), youtube = videos.
 # Voice omitted -> built-in Orpheus French voices.
+# domain tunes the gemini-audio prompt (chess|poker|news|finance|sports|general).
 
 # --- Podcasts ---
 [[show]]
@@ -8,6 +9,7 @@ title       = "PTI (Français)"
 source      = "https://feeds.megaphone.fm/ESP7239282233"   # PTI (ESPN)
 source_type = "rss"
 target_lang = "fr"
+domain      = "sports"
 enabled     = true
 
 [[show]]
@@ -16,6 +18,7 @@ title       = "NBC Nightly News (Français)"
 source      = "https://podcastfeeds.nbcnews.com/l7jK75d0"   # NBC Nightly News w/ Tom Llamas (~19 min)
 source_type = "rss"
 target_lang = "fr"
+domain      = "news"
 enabled     = true
 
 [[show]]
@@ -24,6 +27,7 @@ title       = "Meet the Press (Français)"
 source      = "https://podcastfeeds.nbcnews.com/yf3E6y7x"
 source_type = "rss"
 target_lang = "fr"
+domain      = "news"
 enabled     = true
 
 [[show]]
@@ -32,6 +36,7 @@ title       = "Blue Jays Happy Hour (Français)"
 source      = "https://feeds.acast.com/public/shows/65fc95494538810017c9910f"
 source_type = "rss"
 target_lang = "fr"
+domain      = "sports"
 enabled     = true
 
 [[show]]
@@ -40,6 +45,7 @@ title       = "Canadaland (Français)"
 source      = "https://feeds.acast.com/public/shows/630ceae33fe37400122828c6"
 source_type = "rss"
 target_lang = "fr"
+domain      = "news"
 enabled     = true
 
 # --- Videos (YouTube; only items <= max_video_minutes are dubbed) ---
@@ -50,6 +56,7 @@ source      = "https://www.youtube.com/@HustlerCasinoLive/videos"   # short high
 source_type = "youtube"
 target_lang = "fr"
 speakers    = 3            # narrator + players at the table
+domain      = "poker"
 enabled     = true
 
 [[show]]
@@ -57,6 +64,7 @@ id          = "tushi-fr"
 title       = "sadisticTushi (Français)"
 source      = "https://www.youtube.com/channel/UCNCwk2YndqegSmcMRDoIkdQ/videos"
 source_type = "youtube"
-speakers    = 1            # solo narrator
 target_lang = "fr"
+speakers    = 1            # solo narrator
+domain      = "chess"
 enabled     = true

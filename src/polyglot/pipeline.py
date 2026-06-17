@@ -32,7 +32,8 @@ def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio,
     segments = None
     if settings.transcribe_backend == "gemini-audio" and gemini_audio.available():
         try:  # one call = transcribe + diarize + Québécois translation, robust to noise/accents
-            segments = gemini_audio.transcribe_translate(speech_src, settings) or None
+            segments = gemini_audio.transcribe_translate(
+                speech_src, settings, domain=getattr(job, "domain", None)) or None
             if segments:
                 print(f"  gemini-audio: {len(segments)} segments (transcribe+diarize+translate)")
         except Exception as e:

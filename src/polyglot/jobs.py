@@ -73,9 +73,10 @@ def list_jobs(settings) -> list[dict]:
 
 
 def add_video(settings, url, title="", channel="", video_id="", duration=0,
-              published_ts=None, speakers=1) -> dict:
+              published_ts=None, speakers=1, domain="general") -> dict:
     job = _job(type="video", url=url, title=title or url, channel=channel or "YouTube",
-               video_id=video_id, duration=duration, published_ts=published_ts, speakers=speakers)
+               video_id=video_id, duration=duration, published_ts=published_ts,
+               speakers=speakers, domain=domain)
     _mutate(settings, lambda d: d["jobs"].append(job))
     return job
 
@@ -164,7 +165,7 @@ def _run_video(settings, job):
     if state.is_done(settings.state_path, show_id, vid):
         return
     js = JobSpec(show_id, job.get("channel", "YouTube"), url, "youtube", "fr",
-                 settings.prompts_dir / "fr.txt", [], settings)
+                 settings.prompts_dir / "fr.txt", [], settings, domain=job.get("domain"))
     ep = Episode(guid=vid, title=job.get("title") or "(video)", published=None, media_url=url,
                  published_ts=job.get("published_ts"))
     ep_id = pipeline._safe_id(vid)

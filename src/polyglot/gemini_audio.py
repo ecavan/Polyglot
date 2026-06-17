@@ -32,6 +32,16 @@ def available() -> bool:
     return bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
 
 
+def _domain_context(settings: Settings, domain: str | None) -> str:
+    """Domain-specific guidance (vocab to keep, register, speaker roles) appended to the base
+    prompt. Lives in config/prompts/audio/<domain>.txt so it's tunable per show."""
+    name = (domain or "general").strip().lower()
+    path = settings.prompts_dir / "audio" / f"{name}.txt"
+    if path.is_file():
+        return path.read_text(encoding="utf-8").strip()
+    return ""
+
+
 def _compact_mp3(src: Path, dst: Path) -> Path:
     """Mono 16 kHz ~48 kbps mp3 — tiny to upload, plenty for speech recognition."""
     subprocess.run(["ffmpeg", "-y", "-i", str(src), "-ac", "1", "-ar", "16000",
@@ -53,9 +63,14 @@ def _rows_to_segments(rows: list[dict]) -> list[dict]:
     return out
 
 
-def transcribe_translate(audio_path: Path, settings: Settings) -> list[dict]:
+def transcribe_translate(audio_path: Path, settings: Settings, domain: str | None = None) -> list[dict]:
     from google import genai
     from google.genai import types
+
+    prompt = _PROMPT
+    ctx = _domain_context(settings, domain)
+    if ctx:
+        prompt = f"{_PROMPT}\n\n--- Domain context ({domain}) ---\n{ctx}"
 
     key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     client = genai.Client(api_key=key)
@@ -85,7 +100,7 @@ def transcribe_translate(audio_path: Path, settings: Settings) -> list[dict]:
             if getattr(f.state, "name", "") == "FAILED":
                 raise RuntimeError("Gemini file processing failed")
             resp = client.models.generate_content(
-                model=settings.gemini_model, contents=[f, _PROMPT], config=cfg)
+                model=settings.gemini_model, contents=[f, prompt], config=cfg)
         finally:
             try:
                 client.files.delete(name=f.name)

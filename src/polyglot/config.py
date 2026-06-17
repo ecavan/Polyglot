@@ -78,6 +78,7 @@ class ShowConfig:
     voice: str | None
     enabled: bool
     speakers: int | None = None     # expected speaker count (None = auto: youtube 1, podcast default)
+    domain: str | None = None       # chess|poker|news|finance|sports|general -> gemini-audio prompt
 
 
 @dataclass
@@ -90,6 +91,7 @@ class JobSpec:
     prompt_path: Path
     voice_refs: list[Path]
     settings: Settings
+    domain: str | None = None
 
 
 def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
@@ -171,6 +173,7 @@ def load_shows(path: Path = DEFAULT_SHOWS_PATH) -> list[ShowConfig]:
             voice=s.get("voice"),
             enabled=s.get("enabled", True),
             speakers=s.get("speakers"),
+            domain=s.get("domain"),
         ))
     return out
 
@@ -219,4 +222,5 @@ def build_job(
         prompt_path=prompt_path,
         voice_refs=voice_refs,
         settings=settings,
+        domain=match.domain,
     )
