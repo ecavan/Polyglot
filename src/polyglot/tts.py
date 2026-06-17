@@ -188,21 +188,41 @@ def _xtts_engine(segments, job, settings, out_dir, source_wav=None) -> Callable[
     return synth
 
 
-def assign_voices_by_size(segments: list[dict], voices: list[str],
-                          pitches: list | None = None) -> dict:
+def _pitch_ladder(n: int, mode: str, fixed: list, steps=(-1, 1, -2, 2), key=()) -> list:
+    """n per-speaker pitch offsets (semitones), dominant speaker first.
+
+    "fixed"  -> the configured parallel list (e.g. a deeper-only ladder 0,-1,-2,-3).
+    "spread" -> dominant stays natural (0); the rest spread BOTH lighter(+) and deeper(-) by
+                ±1/±2, deterministically — so voices range above and below Pierre, not just under.
+    "random" -> same ±1/±2 spread but shuffled, seeded by `key` (the cast), so a given set of
+                speakers is stable across re-dubs while different shows get different mixes."""
+    if mode in ("spread", "random"):
+        pool = list(steps)
+        if mode == "random":
+            import random
+            random.Random(abs(hash(key)) % (2 ** 32)).shuffle(pool)
+        out = [0]                                       # dominant speaker: natural Pierre
+        i = 0
+        while len(out) < n:
+            out.append(pool[i % len(pool)])
+            i += 1
+        return out[:n]
+    fixed = list(fixed) or [0]
+    return [fixed[i % len(fixed)] for i in range(max(n, 1))][:n]
+
+
+def assign_voices_by_size(segments: list[dict], voices: list[str], pitches: list | None = None,
+                          pitch_mode: str = "fixed") -> dict:
     """Assign pool voices to speakers ordered by how much they speak, so the dominant speaker
-    (the host) gets voices[0]. Returns spk -> (voice_name, pitch_semitones). The French model has
-    only one male voice (Pierre), so a second male host is rendered as Pierre pitched down a few
-    semitones (deeper + distinguishable); see settings [orpheus] voices / voice_pitch."""
+    (the host) gets voices[0]. Returns spk -> (voice_name, pitch_semitones). Orpheus has only one
+    male voice (Pierre), so distinct speakers are Pierre shifted in pitch (duration-preserved).
+    pitch_mode picks how the offsets are chosen — see _pitch_ladder (deeper-only, lighter+deeper
+    spread, or a seeded random spread); see settings [orpheus] voices / voice_pitch / pitch_mode."""
     from collections import Counter
-    pitches = pitches or [0] * len(voices)
     counts = Counter(seg.get("speaker") or "SPEAKER_00" for seg in segments)
     ordered = [spk for spk, _ in counts.most_common()]
-    out = {}
-    for i, spk in enumerate(ordered):
-        j = i % len(voices)
-        out[spk] = (voices[j], pitches[j] if j < len(pitches) else 0)
-    return out
+    pl = _pitch_ladder(len(ordered), pitch_mode, pitches or [], key=tuple(sorted(ordered)))
+    return {spk: (voices[i % len(voices)], pl[i]) for i, spk in enumerate(ordered)}
 
 
 def _pitch_shift(wav: np.ndarray, semitones: float) -> np.ndarray:
@@ -223,7 +243,8 @@ def _pitch_shift(wav: np.ndarray, semitones: float) -> np.ndarray:
 def _orpheus_engine(segments, settings) -> Callable[[dict], np.ndarray]:
     from polyglot import orpheus_tts
     base = orpheus_tts.build_synth(settings)
-    voice_for = assign_voices_by_size(segments, settings.orpheus_voices, settings.orpheus_voice_pitch)
+    voice_for = assign_voices_by_size(segments, settings.orpheus_voices,
+                                      settings.orpheus_voice_pitch, settings.orpheus_pitch_mode)
 
     def synth(seg: dict) -> np.ndarray:
         spk = seg.get("speaker") or "SPEAKER_00"

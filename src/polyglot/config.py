@@ -29,6 +29,7 @@ class Settings:
     orpheus_gguf: Path
     orpheus_voices: list[str]
     orpheus_voice_pitch: list
+    orpheus_pitch_mode: str               # "fixed" (use voice_pitch) | "spread" | "random" (±1/±2)
     orpheus_temperature: float
     orpheus_max_tokens: int
     # tts expressiveness (XTTS inference params) + multi-voice
@@ -126,6 +127,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         orpheus_gguf=Path(orph.get("gguf", str(default_gguf))),
         orpheus_voices=orph.get("voices", ["Pierre", "Pierre", "Pierre", "Pierre"]),
         orpheus_voice_pitch=orph.get("voice_pitch", [0, -1, -2, -3]),
+        orpheus_pitch_mode=orph.get("pitch_mode", "fixed"),
         orpheus_temperature=orph.get("temperature", 0.7),
         orpheus_max_tokens=orph.get("max_tokens", 1800),
         tts_temperature=tts.get("temperature", 0.75),
