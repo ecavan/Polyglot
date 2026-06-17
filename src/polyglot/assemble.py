@@ -77,29 +77,38 @@ def concat_audio(segments: list[dict], gap_ms: int) -> np.ndarray:
     return np.concatenate(parts)
 
 
-def build_synced_track(segments: list[dict], source_duration: float, speed: float = 1.1,
-                       max_stretch: float = 1.8) -> np.ndarray:
-    """Original-timeline track (video): place each French clip at its source start time and,
-    when the French runs longer than its English window, SPEED IT UP (capped) to fit. Short
-    lines keep their natural pace — the slot's leftover time stays as a pause, matching the
-    original speaker. `speed` biases everything ~10% faster so the dub never drags."""
+def build_synced_track(segments: list[dict], source_duration: float, speed: float = 1.0,
+                       max_stretch: float = 2.0) -> np.ndarray:
+    """Original-timeline track (video): each French clip is anchored STRICTLY at its source start
+    time, and fitted into the window until the next line begins — compressed (pitch-preserving,
+    capped at max_stretch) and, if still too long, clipped. This keeps every line locked to the
+    picture and bounds the dub to the source length (no cumulative drift / frozen-frame tail).
+    `speed` (>1) biases everything faster."""
     total = max(1, int(source_duration * SR))
     track = np.zeros(total, dtype=np.float32)
-    cursor = 0
-    for seg in segments:
+    n = len(segments)
+    for i, seg in enumerate(segments):
         wav, _sr = sf.read(seg["audio_path"], dtype="float32")
         wav = np.asarray(wav, dtype=np.float32)
-        slot = max(0.0, seg["end"] - seg["start"])
-        if slot > 0.05 and len(wav):
-            factor = (len(wav) / SR) / slot * speed         # >1 = French overruns its slot
-            if factor > 1.0:                                # only compress over-long lines
+        if not len(wav):
+            continue
+        start = min(max(0.0, seg["start"]), source_duration)
+        nxt = segments[i + 1]["start"] if i + 1 < n else source_duration
+        window = nxt - start
+        if window > 0.3:                                    # fit into the gap to the next line
+            factor = (len(wav) / SR) / window * speed
+            if factor > 1.0:
                 wav = _rubberband(wav, min(max_stretch, factor))
-        pos = max(int(seg["start"] * SR), cursor)           # anchor to source time; no overlap
-        end = pos + len(wav)
-        if end > len(track):
-            track = np.concatenate([track, np.zeros(end - len(track), dtype=np.float32)])
-        track[pos:end] += wav
-        cursor = end
+            cap = int(window * SR)
+            if len(wav) > cap:                              # still too long -> clip with a short fade
+                wav = wav[:cap].copy()
+                f = min(len(wav), int(0.03 * SR))
+                if f:
+                    wav[-f:] *= np.linspace(1.0, 0.0, f, dtype=np.float32)
+        pos = int(start * SR)
+        endp = min(pos + len(wav), total)                  # never write past the source length
+        if endp > pos:
+            track[pos:endp] += wav[:endp - pos]
     return track
 
 
