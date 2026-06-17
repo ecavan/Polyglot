@@ -14,6 +14,24 @@ class Episode:
     published: str | None
     media_url: str
     published_ts: float | None = None   # real air/upload date as epoch seconds (for retention age)
+    duration_sec: float | None = None   # episode length (for the min/max length filters)
+
+
+def _parse_duration(s) -> float | None:
+    """itunes:duration -> seconds. Accepts 'H:M:S', 'M:S', or plain seconds; None if unknown."""
+    if s is None:
+        return None
+    s = str(s).strip()
+    try:
+        if ":" in s:
+            parts = [float(p) for p in s.split(":")]
+            sec = 0.0
+            for p in parts:
+                sec = sec * 60 + p
+            return sec
+        return float(s)
+    except (ValueError, TypeError):
+        return None
 
 
 def _struct_to_epoch(st) -> float | None:
@@ -43,10 +61,11 @@ def _episode_from_entry(e) -> Episode | None:
         published=e.get("published"),
         media_url=media_url,
         published_ts=_struct_to_epoch(e.get("published_parsed")),
+        duration_sec=_parse_duration(e.get("itunes_duration")),
     )
 
 
-def list_episodes_from_url(url: str, limit: int | None) -> list[Episode]:
+def list_episodes_from_url(url: str, limit: int | None, min_seconds: float = 0) -> list[Episode]:
     parsed = feedparser.parse(url)
     # feedparser never raises on a dead/unreachable/malformed feed — it sets bozo and
     # returns salvaged (often zero) entries. Surface that so a broken feed isn't silently
@@ -58,14 +77,18 @@ def list_episodes_from_url(url: str, limit: int | None) -> list[Episode]:
     out: list[Episode] = []
     for e in parsed.entries:
         ep = _episode_from_entry(e)
-        if ep is not None:
-            out.append(ep)
+        if ep is None:
+            continue
+        if min_seconds and ep.duration_sec is not None and ep.duration_sec < min_seconds:
+            continue  # skip previews / trailers / short clips
+        out.append(ep)
         if limit is not None and len(out) >= limit:
             break
     return out
 
 
-def list_youtube(url: str, limit: int | None, max_minutes: int = 60) -> list[Episode]:
+def list_youtube(url: str, limit: int | None, max_minutes: int = 60,
+                 min_seconds: float = 0) -> list[Episode]:
     from yt_dlp import YoutubeDL
     opts = {"extract_flat": True, "quiet": True, "noprogress": True}
     if limit:
@@ -77,6 +100,8 @@ def list_youtube(url: str, limit: int | None, max_minutes: int = 60) -> list[Epi
         dur = e.get("duration") or 0
         if max_minutes and dur and dur > max_minutes * 60:
             continue  # flat-listing may omit duration; fetch_video re-checks the hard limit
+        if min_seconds and dur and dur < min_seconds:
+            continue  # skip shorts / clips
         vid = e.get("id")
         if not vid:
             continue
@@ -86,15 +111,18 @@ def list_youtube(url: str, limit: int | None, max_minutes: int = 60) -> list[Epi
             published=e.get("upload_date"),
             media_url=f"https://www.youtube.com/watch?v={vid}",
             published_ts=_yyyymmdd_to_epoch(e.get("upload_date")),
+            duration_sec=dur or None,
         ))
         if limit and len(out) >= limit:
             break
     return out
 
 
-def list_episodes(job: JobSpec, limit: int | None, max_minutes: int = 60) -> list[Episode]:
+def list_episodes(job: JobSpec, limit: int | None, max_minutes: int = 60,
+                  min_minutes: float = 0) -> list[Episode]:
+    min_seconds = (min_minutes or 0) * 60
     if job.source_type == "rss":
-        return list_episodes_from_url(job.source, limit)
+        return list_episodes_from_url(job.source, limit, min_seconds=min_seconds)
     if job.source_type == "youtube":
-        return list_youtube(job.source, limit, max_minutes)
+        return list_youtube(job.source, limit, max_minutes, min_seconds=min_seconds)
     raise NotImplementedError(f"source_type '{job.source_type}' not supported")

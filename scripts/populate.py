@@ -39,7 +39,8 @@ def main(argv: list[str]) -> int:
             settings.num_speakers, settings.tts_speed = (show.speakers or orig_speakers), orig_speed
 
         job = build_job(sid, settings, list(shows.values()))
-        eps = feeds.list_episodes(job, limit=count, max_minutes=settings.max_video_minutes)
+        eps = feeds.list_episodes(job, limit=count, max_minutes=settings.max_video_minutes,
+                                  min_minutes=settings.min_episode_minutes)
         eps = [e for e in eps if not state.is_done(settings.state_path, sid, e.guid)][:count]
         print(f"\n=== {sid}: dubbing {len(eps)} item(s) ===", flush=True)
         for ep in eps:

@@ -81,6 +81,7 @@ max_age_days = 7     # also purge anything older than this (weekly window)
 [defaults]
 clip_seconds      = 0        # 0 = full episode; >0 = trim (handy for testing)
 max_video_minutes = 90       # skip videos longer than this (allows 30-45 min shows, blocks 10h streams)
+min_episode_minutes = 6      # skip items shorter than this (podcast previews/trailers, YouTube shorts)
 video_speed       = 1.0       # speed bias for video dubs (fit-to-timeline; 1.0 = natural pace)
 video_height      = 720       # downscale burned video to this height (720p; small files, fine for TV)
 diarize           = true     # label speakers -> assign distinct voices

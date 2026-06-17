@@ -186,7 +186,8 @@ def _run_podcast(settings, job):
     if show is None:
         raise RuntimeError(f"unknown show {show_id}")
     js = build_job(show_id, settings, shows)
-    eps = [e for e in feeds.list_episodes(js, limit=3, max_minutes=settings.max_video_minutes)
+    eps = [e for e in feeds.list_episodes(js, limit=3, max_minutes=settings.max_video_minutes,
+                                          min_minutes=settings.min_episode_minutes)
            if not state.is_done(settings.state_path, show_id, e.guid)]
     if not eps:
         return                                                  # nothing new

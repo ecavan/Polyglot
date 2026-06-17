@@ -33,7 +33,8 @@ def _process_show(show, settings, shows) -> dict:
         return result
     try:
         eps = feeds.list_episodes(job, limit=settings.retention_keep,
-                                  max_minutes=settings.max_video_minutes)
+                                  max_minutes=settings.max_video_minutes,
+                                  min_minutes=settings.min_episode_minutes)
     except Exception as e:  # yt-dlp / network errors must not abort the whole pass
         print(f"  WARNING listing {show.id} failed: {e}")
         return result

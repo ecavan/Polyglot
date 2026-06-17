@@ -60,6 +60,7 @@ class Settings:
     # defaults
     clip_seconds: int
     max_video_minutes: int
+    min_episode_minutes: float           # skip items shorter than this (previews/trailers/shorts)
     video_speed: float
     video_height: int
     diarize: bool
@@ -150,6 +151,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         retention_max_age_days=ret.get("max_age_days", 7),
         clip_seconds=df["clip_seconds"],
         max_video_minutes=df.get("max_video_minutes", 60),
+        min_episode_minutes=df.get("min_episode_minutes", 6),
         video_speed=df.get("video_speed", 1.1),
         video_height=df.get("video_height", 720),
         diarize=df["diarize"],
