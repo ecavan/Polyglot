@@ -52,10 +52,10 @@ voice_pool         = ["Viktor Eka", "Andrew Chipper", "Craig Gutsy", "Damien Bla
 voices      = ["Pierre", "Pierre", "Pierre", "Pierre"]  # all male (default)
 voice_pitch = [0, -1, -2, -3]                           # used when pitch_mode = "fixed" (deeper ladder)
 # pitch_mode: "fixed" = use voice_pitch above (deeper-only). "spread" = dominant speaker natural,
-# others spread BOTH lighter(+) and deeper(-) by ±1/±2. "random" = same ±1/±2 spread but shuffled
-# per cast (stable for a given set of speakers, varies across shows). Try "random" to hear lighter
-# voices too; the main host always stays natural Pierre.
-pitch_mode  = "random"
+# others spread outward +1,-1,+2,-2 (so 3 speakers = 0,+1,-1; then +2,-2). "random" = same ±1/±2
+# pool but shuffled per cast. "spread" gives Pierre at all 5 pitches deterministically; the main
+# host always stays natural Pierre.
+pitch_mode  = "spread"
 temperature = 0.7                              # higher => more expressive (0.6 base; >~0.8 risks instability)
 max_tokens  = 1800
 

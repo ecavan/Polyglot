@@ -188,12 +188,12 @@ def _xtts_engine(segments, job, settings, out_dir, source_wav=None) -> Callable[
     return synth
 
 
-def _pitch_ladder(n: int, mode: str, fixed: list, steps=(-1, 1, -2, 2), key=()) -> list:
+def _pitch_ladder(n: int, mode: str, fixed: list, steps=(1, -1, 2, -2), key=()) -> list:
     """n per-speaker pitch offsets (semitones), dominant speaker first.
 
     "fixed"  -> the configured parallel list (e.g. a deeper-only ladder 0,-1,-2,-3).
-    "spread" -> dominant stays natural (0); the rest spread BOTH lighter(+) and deeper(-) by
-                ±1/±2, deterministically — so voices range above and below Pierre, not just under.
+    "spread" -> dominant stays natural (0); the rest spread BOTH lighter(+) and deeper(-),
+                outward in the order +1, -1, +2, -2 -> e.g. 3 speakers = [0, +1, -1], then [+2, -2].
     "random" -> same ±1/±2 spread but shuffled, seeded by `key` (the cast), so a given set of
                 speakers is stable across re-dubs while different shows get different mixes."""
     if mode in ("spread", "random"):
