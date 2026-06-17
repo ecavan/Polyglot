@@ -12,6 +12,8 @@ class Settings:
     transcribe_backend: str
     mlx_whisper_repo: str
     faster_whisper: str
+    transcribe_min_logprob: float        # drop whisper segments below this avg_logprob (garbled)
+    transcribe_max_no_speech: float      # ...or above this no_speech_prob
     translate_backend: str                # "gemini" | "claude" (remote, fall back to local) | "mlx"
     mlx_llm_repo: str
     anthropic_model: str
@@ -75,6 +77,7 @@ class ShowConfig:
     target_lang: str
     voice: str | None
     enabled: bool
+    speakers: int | None = None     # expected speaker count (None = auto: youtube 1, podcast default)
 
 
 @dataclass
@@ -104,6 +107,8 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         transcribe_backend=m["transcribe_backend"],
         mlx_whisper_repo=m["mlx_whisper_repo"],
         faster_whisper=m["faster_whisper"],
+        transcribe_min_logprob=m.get("min_logprob", -1.0),
+        transcribe_max_no_speech=m.get("max_no_speech", 0.6),
         translate_backend=m["translate_backend"],
         mlx_llm_repo=m["mlx_llm_repo"],
         anthropic_model=m.get("anthropic_model", "claude-sonnet-4-6"),
@@ -165,6 +170,7 @@ def load_shows(path: Path = DEFAULT_SHOWS_PATH) -> list[ShowConfig]:
             target_lang=s["target_lang"],
             voice=s.get("voice"),
             enabled=s.get("enabled", True),
+            speakers=s.get("speakers"),
         ))
     return out
 

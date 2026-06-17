@@ -34,9 +34,9 @@ def main(argv: list[str]) -> int:
         # video = solo-narrator defaults (matches the tested `polyglot video` path);
         # podcasts keep the multi-host defaults.
         if show.source_type == "youtube":
-            settings.num_speakers, settings.tts_speed = 1, 1.0
+            settings.num_speakers, settings.tts_speed = (show.speakers or 1), 1.0
         else:
-            settings.num_speakers, settings.tts_speed = orig_speakers, orig_speed
+            settings.num_speakers, settings.tts_speed = (show.speakers or orig_speakers), orig_speed
 
         job = build_job(sid, settings, list(shows.values()))
         eps = feeds.list_episodes(job, limit=count, max_minutes=settings.max_video_minutes)

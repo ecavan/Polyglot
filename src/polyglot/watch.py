@@ -85,9 +85,14 @@ def run_watch(settings, shows) -> dict:
             print("another watch run is in progress; skipping this pass")
             totals["skipped_locked"] = True
             return totals
+        base_speakers, base_speed = settings.num_speakers, settings.tts_speed
         for show in shows:
             if not show.enabled:
                 continue
+            if show.source_type == "youtube":          # video: solo narrator unless show says otherwise
+                settings.num_speakers, settings.tts_speed = (show.speakers or 1), 1.0
+            else:
+                settings.num_speakers, settings.tts_speed = (show.speakers or base_speakers), base_speed
             try:
                 r = _process_show(show, settings, shows)
             except Exception as e:  # last-resort guard: one show can never abort the others

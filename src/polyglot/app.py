@@ -23,13 +23,15 @@ left, right = st.columns(2)
 with left:
     st.subheader("➕ Add a video")
     url = st.text_input("YouTube URL", placeholder="https://www.youtube.com/watch?v=…")
+    speakers = st.number_input("Speakers", min_value=1, max_value=6, value=1, step=1,
+                               help="1 = solo narrator (chess); 2–3 for multi-speaker (poker: narrator + players)")
     if st.button("Queue video", type="primary", disabled=not url.strip()):
         try:
             with st.spinner("Reading video info…"):
                 m = download.video_metadata(url.strip())
             jobs.add_video(settings, url.strip(), title=m["title"], channel=m["channel"],
                            video_id=m["video_id"], duration=m["duration"],
-                           published_ts=m.get("published_ts"))
+                           published_ts=m.get("published_ts"), speakers=int(speakers))
             mins = m["duration"] / 60
             st.success(f"Queued: {m['title']} — {m['channel']} ({mins:.0f} min)")
             if mins > settings.max_video_minutes:

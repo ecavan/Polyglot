@@ -49,6 +49,7 @@ title       = "Hustler Casino Live (Français)"
 source      = "https://www.youtube.com/@HustlerCasinoLive/videos"   # short highlights, not the long streams
 source_type = "youtube"
 target_lang = "fr"
+speakers    = 3            # narrator + players at the table
 enabled     = true
 
 [[show]]
@@ -56,5 +57,6 @@ id          = "tushi-fr"
 title       = "sadisticTushi (Français)"
 source      = "https://www.youtube.com/channel/UCNCwk2YndqegSmcMRDoIkdQ/videos"
 source_type = "youtube"
+speakers    = 1            # solo narrator
 target_lang = "fr"
 enabled     = true

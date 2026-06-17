@@ -3,6 +3,10 @@
 transcribe_backend = "mlx-whisper"                       # "mlx-whisper" | "faster-whisper"
 mlx_whisper_repo   = "mlx-community/whisper-large-v3-turbo"
 faster_whisper     = "medium.en"                          # used only by faster-whisper backend
+# Drop garbled low-confidence speech (quiet/noisy/accented, e.g. poker table chatter) so it
+# isn't mis-translated and thrown out of sync. Clear speech scores well above these.
+min_logprob        = -1.0                                # drop segments below this whisper avg_logprob
+max_no_speech      = 0.6                                  # ...or above this no-speech probability
 
 # --- translation ---
 # "gemini"/"claude" = remote LLM (best Québécois), needs the matching API key in the env

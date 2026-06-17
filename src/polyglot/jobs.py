@@ -72,9 +72,10 @@ def list_jobs(settings) -> list[dict]:
     return _read(settings)["jobs"]
 
 
-def add_video(settings, url, title="", channel="", video_id="", duration=0, published_ts=None) -> dict:
+def add_video(settings, url, title="", channel="", video_id="", duration=0,
+              published_ts=None, speakers=1) -> dict:
     job = _job(type="video", url=url, title=title or url, channel=channel or "YouTube",
-               video_id=video_id, duration=duration, published_ts=published_ts)
+               video_id=video_id, duration=duration, published_ts=published_ts, speakers=speakers)
     _mutate(settings, lambda d: d["jobs"].append(job))
     return job
 
@@ -155,7 +156,8 @@ def _publish_and_record(settings, kind, show_id, show_title, ep, res, ep_id):
 
 def _run_video(settings, job):
     from polyglot import pipeline
-    settings.num_speakers, settings.tts_speed = 1, 1.0          # solo-narrator video defaults
+    settings.num_speakers = max(1, int(job.get("speakers") or 1))   # 1 = solo narrator; >1 = e.g. poker
+    settings.tts_speed = 1.0
     url = job["url"]
     vid = job.get("video_id") or "yt-" + hashlib.sha1(url.encode()).hexdigest()[:12]
     show_id = "video"

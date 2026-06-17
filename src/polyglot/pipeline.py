@@ -30,6 +30,12 @@ def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio,
         speech_src, bed = separate.separate(src_audio, work / "sep", settings)  # vocals + music bed
     wav16 = download.to_16k_mono(speech_src, work)                # for whisper + diarizer
     segments = transcribe.transcribe(wav16, settings)
+    filtered = transcribe.drop_low_confidence(                     # skip garbled quiet/noisy speech
+        segments, settings.transcribe_min_logprob, settings.transcribe_max_no_speech)
+    if filtered:                                                   # ...but never drop a whole episode
+        if len(filtered) < len(segments):
+            print(f"  dropped {len(segments) - len(filtered)} low-confidence segment(s)")
+        segments = filtered
     if settings.diarize:
         segments = diarize.diarize(wav16, segments, settings)
     segments = segmod.merge_short_segments(segments)             # fuller phrases -> stable TTS
