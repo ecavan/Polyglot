@@ -56,7 +56,8 @@ def _transcribe_faster(wav: Path, settings: Settings) -> list[dict]:
 
 
 def transcribe(wav: Path, settings: Settings) -> list[dict]:
-    if settings.transcribe_backend == "mlx-whisper":
+    # "gemini-audio" is handled upstream (pipeline); when we reach here it's the whisper fallback.
+    if settings.transcribe_backend in ("mlx-whisper", "gemini-audio"):
         return _transcribe_mlx(wav, settings)
     if settings.transcribe_backend == "faster-whisper":
         return _transcribe_faster(wav, settings)

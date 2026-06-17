@@ -1,6 +1,8 @@
 [models]
 # --- transcription ---
-transcribe_backend = "mlx-whisper"                       # "mlx-whisper" | "faster-whisper"
+transcribe_backend = "gemini-audio"                      # "gemini-audio" (Gemini transcribe+diarize+
+                                                         #   translate, robust to noise/accents; needs
+                                                         #   GEMINI_API_KEY) | "mlx-whisper" | "faster-whisper"
 mlx_whisper_repo   = "mlx-community/whisper-large-v3-turbo"
 faster_whisper     = "medium.en"                          # used only by faster-whisper backend
 # Drop garbled low-confidence speech (quiet/noisy/accented, e.g. poker table chatter) so it

@@ -2,7 +2,7 @@ import re
 import traceback
 
 from polyglot import (
-    assemble, diarize, download, publish_video,
+    assemble, diarize, download, gemini_audio, publish_video,
     segments as segmod, separate, subtitles, transcribe, translate, tts,
 )
 from polyglot.config import JobSpec, Settings
@@ -28,18 +28,31 @@ def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio,
     speech_src = src_audio
     if settings.separate_enabled:
         speech_src, bed = separate.separate(src_audio, work / "sep", settings)  # vocals + music bed
-    wav16 = download.to_16k_mono(speech_src, work)                # for whisper + diarizer
-    segments = transcribe.transcribe(wav16, settings)
-    filtered = transcribe.drop_low_confidence(                     # skip garbled quiet/noisy speech
-        segments, settings.transcribe_min_logprob, settings.transcribe_max_no_speech)
-    if filtered:                                                   # ...but never drop a whole episode
-        if len(filtered) < len(segments):
-            print(f"  dropped {len(segments) - len(filtered)} low-confidence segment(s)")
-        segments = filtered
-    if settings.diarize:
-        segments = diarize.diarize(wav16, segments, settings)
-    segments = segmod.merge_short_segments(segments)             # fuller phrases -> stable TTS
-    segments = translate.translate(segments, job, settings)
+
+    segments = None
+    if settings.transcribe_backend == "gemini-audio" and gemini_audio.available():
+        try:  # one call = transcribe + diarize + Québécois translation, robust to noise/accents
+            segments = gemini_audio.transcribe_translate(speech_src, settings) or None
+            if segments:
+                print(f"  gemini-audio: {len(segments)} segments (transcribe+diarize+translate)")
+        except Exception as e:
+            print(f"  gemini-audio failed ({e}); falling back to whisper")
+            segments = None
+
+    if segments is None:                                         # whisper path (default + fallback)
+        wav16 = download.to_16k_mono(speech_src, work)
+        segments = transcribe.transcribe(wav16, settings)
+        filtered = transcribe.drop_low_confidence(                # skip garbled quiet/noisy speech
+            segments, settings.transcribe_min_logprob, settings.transcribe_max_no_speech)
+        if filtered:                                              # ...but never drop a whole episode
+            if len(filtered) < len(segments):
+                print(f"  dropped {len(segments) - len(filtered)} low-confidence segment(s)")
+            segments = filtered
+        if settings.diarize:
+            segments = diarize.diarize(wav16, segments, settings)
+        segments = segmod.merge_short_segments(segments)         # fuller phrases -> stable TTS
+        segments = translate.translate(segments, job, settings)
+
     segments = tts.synthesize(segments, job, settings, work / "segments", source_wav=speech_src)
     audio = assemble.assemble(segments, out_audio, settings, bed_path=bed,
                               sync_to_source=sync_to_source, source_duration=source_duration)
