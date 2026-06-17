@@ -27,6 +27,20 @@ _PROMPT = (
     "the seconds offset into the audio when the line begins."
 )
 
+# Hybrid: a rough whisper transcript (accurate timestamps, error-prone words) is provided; Gemini
+# corrects the words against the audio and keeps whisper's precise (sub-second) timing.
+_PROMPT_HYBRID = (
+    "You are given audio AND a rough machine transcript of it (index, start, end, text — tab-"
+    "separated). The timestamps are accurate; the words contain errors (accents, noise). Using the "
+    "AUDIO to correct what is actually said:\n"
+    "1. Return one line per real utterance, KEEPING the transcript's start/end (you may merge "
+    "adjacent fragments of one sentence — keep the merged span's start and end). Drop lines that "
+    "are just noise/music.\n"
+    "2. Correct 'en' to the true words; translate to natural spoken Québécois French ('fr').\n"
+    "3. Give each distinct voice a consistent speaker label.\n"
+    "Return ONLY a JSON array of {start, end, speaker, en, fr}, ordered by start."
+)
+
 
 def available() -> bool:
     return bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
@@ -57,32 +71,41 @@ def _rows_to_segments(rows: list[dict]) -> list[dict]:
         seg = new_segment(i, float(r["start"]), 0.0, str(r["en"]).strip())
         seg["translation"] = str(r.get("fr", "")).strip()
         seg["speaker"] = str(r.get("speaker") or "speaker 1")
+        e = r.get("end")
+        seg["end"] = float(e) if (e is not None and float(e) > seg["start"]) else None
         out.append(seg)
-    for i, seg in enumerate(out):                       # slot = until the next line starts
-        seg["end"] = max(seg["start"], out[i + 1]["start"]) if i + 1 < len(out) else seg["start"] + 4.0
+    for i, seg in enumerate(out):                       # fill missing ends: until the next line
+        if seg["end"] is None:
+            seg["end"] = max(seg["start"], out[i + 1]["start"]) if i + 1 < len(out) else seg["start"] + 4.0
     return out
 
 
-def transcribe_translate(audio_path: Path, settings: Settings, domain: str | None = None) -> list[dict]:
+def transcribe_translate(audio_path: Path, settings: Settings, domain: str | None = None,
+                         draft: list[dict] | None = None) -> list[dict]:
+    """Audio -> EN+FR+speaker+timestamps. With `draft` (whisper segments) it runs the HYBRID:
+    Gemini corrects the words against the audio while keeping whisper's precise timestamps."""
     from google import genai
     from google.genai import types
 
-    prompt = _PROMPT
     ctx = _domain_context(settings, domain)
-    if ctx:
-        prompt = f"{_PROMPT}\n\n--- Domain context ({domain}) ---\n{ctx}"
+    ctx_block = f"\n\n--- Domain context ({domain}) ---\n{ctx}" if ctx else ""
+    props = {"start": types.Schema(type=types.Type.NUMBER),
+             "speaker": types.Schema(type=types.Type.STRING),
+             "en": types.Schema(type=types.Type.STRING),
+             "fr": types.Schema(type=types.Type.STRING)}
+    if draft:
+        lines = "\n".join(f"{i}\t{d['start']:.2f}\t{(d.get('end') or d['start']):.2f}\t{d['text']}"
+                          for i, d in enumerate(draft))
+        prompt = _PROMPT_HYBRID + ctx_block + "\n\nRough machine transcript:\n" + lines
+        props["end"] = types.Schema(type=types.Type.NUMBER)
+    else:
+        prompt = _PROMPT + ctx_block
 
     key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     client = genai.Client(api_key=key)
     schema = types.Schema(
         type=types.Type.ARRAY,
-        items=types.Schema(
-            type=types.Type.OBJECT,
-            properties={"start": types.Schema(type=types.Type.NUMBER),
-                        "speaker": types.Schema(type=types.Type.STRING),
-                        "en": types.Schema(type=types.Type.STRING),
-                        "fr": types.Schema(type=types.Type.STRING)},
-            required=["start", "en", "fr"]),
+        items=types.Schema(type=types.Type.OBJECT, properties=props, required=["start", "en", "fr"]),
     )
     cfg = types.GenerateContentConfig(
         response_mime_type="application/json", response_schema=schema,

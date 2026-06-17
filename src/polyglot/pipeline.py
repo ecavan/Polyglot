@@ -29,26 +29,29 @@ def dub_audio(src_audio, job: JobSpec, settings: Settings, work, out_audio,
     if settings.separate_enabled:
         speech_src, bed = separate.separate(src_audio, work / "sep", settings)  # vocals + music bed
 
+    # Whisper gives precise (sub-second) timestamps + a rough transcript; it feeds the gemini-audio
+    # hybrid (Gemini corrects the words against the audio, keeping whisper's timing) and doubles as
+    # the offline fallback.
+    wav16 = download.to_16k_mono(speech_src, work)
+    draft = transcribe.transcribe(wav16, settings)
+
     segments = None
     if settings.transcribe_backend == "gemini-audio" and gemini_audio.available():
-        try:  # one call = transcribe + diarize + Québécois translation, robust to noise/accents
+        try:  # hybrid: whisper timestamps + Gemini words/diarization/Québécois translation
             segments = gemini_audio.transcribe_translate(
-                speech_src, settings, domain=getattr(job, "domain", None)) or None
+                speech_src, settings, domain=getattr(job, "domain", None), draft=draft) or None
             if segments:
-                print(f"  gemini-audio: {len(segments)} segments (transcribe+diarize+translate)")
+                print(f"  gemini-audio (hybrid): {len(segments)} segments")
         except Exception as e:
             print(f"  gemini-audio failed ({e}); falling back to whisper")
             segments = None
 
-    if segments is None:                                         # whisper path (default + fallback)
-        wav16 = download.to_16k_mono(speech_src, work)
-        segments = transcribe.transcribe(wav16, settings)
+    if segments is None:                                         # whisper-only path (fallback)
         filtered = transcribe.drop_low_confidence(                # skip garbled quiet/noisy speech
-            segments, settings.transcribe_min_logprob, settings.transcribe_max_no_speech)
-        if filtered:                                              # ...but never drop a whole episode
-            if len(filtered) < len(segments):
-                print(f"  dropped {len(segments) - len(filtered)} low-confidence segment(s)")
-            segments = filtered
+            draft, settings.transcribe_min_logprob, settings.transcribe_max_no_speech)
+        segments = filtered or draft                              # never drop a whole episode
+        if len(segments) < len(draft):
+            print(f"  dropped {len(draft) - len(segments)} low-confidence segment(s)")
         if settings.diarize:
             segments = diarize.diarize(wav16, segments, settings)
         segments = segmod.merge_short_segments(segments)         # fuller phrases -> stable TTS
