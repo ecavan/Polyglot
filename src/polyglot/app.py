@@ -26,7 +26,8 @@ with left:
     c_sp, c_dom = st.columns(2)
     speakers = c_sp.number_input("Speakers", min_value=1, max_value=6, value=1, step=1,
                                  help="1 = solo narrator (chess); 2–3 for multi-speaker (poker)")
-    domain = c_dom.selectbox("Topic", ["general", "chess", "poker", "news", "finance", "sports"],
+    domain = c_dom.selectbox("Topic",
+                             ["general", "chess", "poker", "news", "finance", "sports", "history"],
                              help="tunes the transcription/translation vocabulary")
     if st.button("Queue video", type="primary", disabled=not url.strip()):
         try:
