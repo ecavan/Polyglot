@@ -68,3 +68,23 @@ target_lang = "fr"
 speakers    = 1            # solo narrator
 domain      = "chess"
 enabled     = true
+
+[[show]]
+id          = "lastweektonight-fr"
+title       = "Last Week Tonight (Français)"
+source      = "https://www.youtube.com/@LastWeekTonight/videos"   # John Oliver main-story segments
+source_type = "youtube"
+target_lang = "fr"
+speakers    = 1            # solo monologue
+domain      = "news"
+enabled     = true
+
+[[show]]
+id          = "extrahistory-fr"
+title       = "Extra History (Français)"
+source      = "https://www.youtube.com/channel/UCCODtTcd5M1JavPCOr_Uydg/videos"   # animated history
+source_type = "youtube"
+target_lang = "fr"
+speakers    = 1            # solo narrator
+domain      = "history"
+enabled     = true
