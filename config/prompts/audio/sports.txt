@@ -1,0 +1,9 @@
+This audio is a sports-talk show: two or more hosts debating in fast, overlapping banter about teams, athletes, leagues, plays, and stats. Prime for rapid speech, sports slang, and dense proper nouns.
+
+Expect these terms (spell exactly): MLB, NBA, NFL, NHL, MVP, ERA, OPS, WAR, RBI, OBP, GM, free agency, waivers, trade deadline, starting pitcher, bullpen, closer, no-hitter, walk-off, grand slam, double play, point guard, three-pointer, buzzer-beater, power play, faceoff, draft pick, salary cap, playoff seeding, rotation, lineup, slump, hot streak. Watch mangled names: Shohei Ohtani, Vladimir Guerrero Jr., Aaron Judge.
+
+Translation: keep anglicisms QC actually uses verbatim (score, coach, MVP, draft, bullpen, slap shot, slump, lineup, timeout, overtime, dugout). Use real QC equivalents: repêchage (draft, very common), avantage numérique (power play), séries éliminatoires (playoffs), recrue (rookie), lanceur (pitcher), frappeur (batter), manche (inning), but (goal), passe or aide (assist), échange (trade), agent libre (free agent), blessure (injury), entraîneur or coach (coach), gardien (goalie). Keep proper nouns, team/league/player names, stats, scores, and notation (3-2 count, 2-0 series) verbatim.
+
+Diarize by role: label recurring co-hosts as consistent distinct voices; tag any guest or call-in caller separately.
+
+Pitfalls: hosts overlap and interrupt, so attribute crosstalk carefully; intros, stingers, and crowd noise bleed in; stat acronyms are spoken letter-by-letter; do not invent stats or names when audio is unclear.

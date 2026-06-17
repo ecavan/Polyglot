@@ -1,0 +1,9 @@
+This is a finance/markets show: hosts and analysts discussing stocks, earnings, central banks, interest rates, bonds, and crypto, dense with tickers, company names, percentages, and dollar figures.
+
+Transcribe these terms of art exactly: earnings, revenue, EPS, guidance, P/E ratio, market cap, basis points (bps), yield, the Fed, FOMC, rate hike/cut, hawkish/dovish, Treasuries, the 10-year, yield curve, inversion, bull/bear market, rally, selloff, correction, dividend, buyback, IPO, ETF, S&P 500, Nasdaq, Dow, VIX, short/long, calls, puts, volatility, liquidity, Bitcoin, Ethereum, blockchain, altcoin, stablecoin. Names: Powell, Buffett, Apple, Nvidia, Tesla, Goldman Sachs, JPMorgan, the ECB, the Bank of Canada (la Banque du Canada).
+
+Translation: keep tickers, company names, indices, people, dates, numbers, percentages and notation (%, $, bps, Q1) verbatim. Keep anglicisms heard in Montréal finance speech: "le marché", "un stock", "le cash", "le yield", "un trade", "bull/bear", "shorter", often "buyback" and "guidance". Use French where natural: bénéfices/profits (earnings), chiffre d'affaires (revenue), taux d'intérêt (rates), taux directeur (policy rate), hausse/baisse de taux (hike/cut), obligations (bonds), point de base (bps), actions (stocks/shares), dividende, rachat d'actions (buyback). For the central bank, "la Fed" dominates over "Réserve fédérale".
+
+Roles: an animateur/host (frames, asks) plus one or more analystes/invités (forecasts, commentary); label each consistently.
+
+Pitfalls: rapid-fire numbers and tickers, spelled-out acronyms (EPS, FOMC, ETF), tickers read as letters, overlapping crosstalk during debate, and remote-call or trading-floor noise. Never invent figures you cannot clearly hear.

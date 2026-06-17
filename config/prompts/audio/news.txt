@@ -1,0 +1,9 @@
+This is a TV or radio newscast or political-interview program: studio anchors, field correspondents, and named interviewees discussing current events, government, and policy in a more formal register. Prime for clean scripted studio speech and noisier remote or phone/satellite field segments.
+
+Expect these terms of art, spelled correctly so they transcribe right: prime minister, premier, cabinet, caucus, riding, byelection, mandate, motion, bill (and numbers like Bill C-11), filibuster, House of Commons, National Assembly, Senate, Supreme Court, the Liberals, Conservatives, NDP, Bloc Québécois, CAQ, Throne Speech, budget, deficit, tariffs, sanctions, ceasefire, coalition, polling, electorate, GDP, Bank of Canada, NATO, UN, EU, referendum, sovereignty, jurisdiction, federal/provincial, the opposition.
+
+Translation: keep all names, party names, place names, dates, percentages, dollar figures, and bill/poll numbers verbatim. Use standard French equivalents where real ones exist: premier ministre, ministre, gouvernement minoritaire/majoritaire, projet de loi, motion, élection partielle, circonscription, séance, sondage, mandat, porte-parole, discours du Trône, budget, déficit, droits de douane (tariffs), cessez-le-feu, taux d'inflation, souveraineté, OTAN, ONU, UE. Keep caucus and the party acronyms as said; render anglicisms a speaker actually uses rather than forcing France-French.
+
+Diarize as distinct, consistent voices: the studio anchor/host, on-location reporters/correspondents, and each named interviewee or panelist.
+
+Pitfalls: fast scripted anchor delivery, crosstalk in interviews and debates, phone/satellite distortion in field reports, mixed accents (Québécois, Acadian, European French, accented English), and clipped abbreviations (PM, MNA, MP, GDP).

@@ -1,0 +1,9 @@
+This audio is a high-stakes poker live stream: a play-by-play commentator (often with a color commentator) narrating action while several seated players speak, many with non-native or international accents, over chip riffling, shuffling, and crowd noise.
+
+You will hear poker terms of art; transcribe them exactly: hole cards, flop, turn, river, board, pre-flop, all-in, check-raise, three-bet/four-bet, c-bet (continuation bet), bluff, value bet, pot odds, equity, blinds (small/big blind), ante, straddle, button, cutoff, under the gun (UTG), nuts, set, two pair, top pair, flush draw, gutshot, open-ended, overpair, kicker, cooler, runner-runner, muck, fold, call, raise, limp, snap-call, tank, range, GTO, ICM, rake, side pot, broadway, suited connectors, pocket aces/kings, rivered, freeroll.
+
+For Québécois French, keep the entrenched anglicisms Montréal players actually say in-game and pronounce English: all-in, flop, turn, river, board, bluff, check, raise, call, fold, kicker, set, flush, straddle, button, range, GTO, c-bet. Do NOT use France-French like "tapis." Translate only where QC really does: relance (raise), suivre (call/to call), se coucher (fold), mise de valeur (value bet), cote du pot (pot odds), le pot, tirage couleur (flush draw), quinte (straight). Keep player names, stack sizes, bet amounts, card notation (A-spade, K-Q, pocket 8s) and dollar/blind figures verbatim, digit for digit.
+
+Diarize by role: label commentator(s) distinctly from players, and give each seated player a stable label across the hand.
+
+Pitfalls: accents distort jargon; players murmur reads while the commentator talks over them, so attribute overlapping speech carefully. Ranks blur (ten/king, four/five) and abbreviations (UTG, BB, SB, c-bet) get clipped. Never "correct" jargon into ordinary words; render numbers and suits precisely.
