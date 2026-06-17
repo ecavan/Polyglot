@@ -44,10 +44,13 @@ voice_pool         = ["Viktor Eka", "Andrew Chipper", "Craig Gutsy", "Damien Bla
 [orpheus]
 # Expressive French TTS (canopylabs/lex-au Orpheus 3B, GGUF via llama.cpp + SNAC).
 # gguf defaults to ~/.cache/polyglot/orpheus/Orpheus-3b-French-FT-Q8_0.gguf
-# Only Pierre is male, so a 2nd male host = Pierre pitched deeper. Speakers are assigned by how
-# much they talk: loudest -> voices[0], next -> voices[1], etc. voice_pitch is parallel (semitones).
-voices      = ["Pierre", "Pierre", "Amelie", "Marie"]   # main hosts male; minor/ad-read -> female
-voice_pitch = [0, -2, 0, 0]                             # 2nd host: Pierre, 2 semitones deeper
+# Speakers are assigned by how much they talk: loudest -> voices[0], next -> voices[1], etc.
+# voice_pitch is parallel (semitones, pitch-shifted but duration-preserved).
+# DEFAULT = all male: Orpheus has one male voice (Pierre), so distinct male speakers are Pierre
+# pitched progressively deeper (0, -1, -2, -3 semitones). To add WOMEN, swap entries for
+# "Amelie"/"Marie" and set their pitch to 0, e.g. voices=["Pierre","Amelie","Pierre","Marie"].
+voices      = ["Pierre", "Pierre", "Pierre", "Pierre"]  # all male (default)
+voice_pitch = [0, -1, -2, -3]                           # each speaker a bit deeper, all distinct
 temperature = 0.7                              # higher => more expressive (0.6 base; >~0.8 risks instability)
 max_tokens  = 1800
 
@@ -82,7 +85,11 @@ max_age_days = 7     # also purge anything older than this (weekly window)
 clip_seconds      = 0        # 0 = full episode; >0 = trim (handy for testing)
 max_video_minutes = 90       # skip videos longer than this (allows 30-45 min shows, blocks 10h streams)
 min_episode_minutes = 6      # skip items shorter than this (podcast previews/trailers, YouTube shorts)
-video_speed       = 1.0       # speed bias for video dubs (fit-to-timeline; 1.0 = natural pace)
+video_speed       = 1.0       # speed bias for video dubs (1.0 = natural pace; >1 = faster overall)
+# Elastic sync: how much a dense line may be sped up to fit before it just EXTENDS the video
+# (and catches up in the next pause). Lower = slower & clearer but longer video; higher = tighter
+# sync but faster speech. 1.3 = gentle (understandable). Was effectively 2.0 (too fast).
+video_max_stretch = 1.3
 video_height      = 720       # downscale burned video to this height (720p; small files, fine for TV)
 diarize           = true     # label speakers -> assign distinct voices
 num_speakers      = 3        # expected speakers: PTI = opening ad + 2 hosts (1 = solo; 0 = auto)

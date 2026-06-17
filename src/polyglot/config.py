@@ -62,6 +62,7 @@ class Settings:
     max_video_minutes: int
     min_episode_minutes: float           # skip items shorter than this (previews/trailers/shorts)
     video_speed: float
+    video_max_stretch: float             # max speed-up of a dense line (low = slower/longer, clearer)
     video_height: int
     diarize: bool
     temperature: float
@@ -123,8 +124,8 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         tts_device=m["tts_device"],
         voice_mode=tts.get("voice_mode", "pool"),
         orpheus_gguf=Path(orph.get("gguf", str(default_gguf))),
-        orpheus_voices=orph.get("voices", ["Pierre", "Pierre", "Amelie", "Marie"]),
-        orpheus_voice_pitch=orph.get("voice_pitch", [0, -2, 0, 0]),
+        orpheus_voices=orph.get("voices", ["Pierre", "Pierre", "Pierre", "Pierre"]),
+        orpheus_voice_pitch=orph.get("voice_pitch", [0, -1, -2, -3]),
         orpheus_temperature=orph.get("temperature", 0.7),
         orpheus_max_tokens=orph.get("max_tokens", 1800),
         tts_temperature=tts.get("temperature", 0.75),
@@ -152,7 +153,8 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         clip_seconds=df["clip_seconds"],
         max_video_minutes=df.get("max_video_minutes", 60),
         min_episode_minutes=df.get("min_episode_minutes", 6),
-        video_speed=df.get("video_speed", 1.1),
+        video_speed=df.get("video_speed", 1.0),
+        video_max_stretch=df.get("video_max_stretch", 1.3),
         video_height=df.get("video_height", 720),
         diarize=df["diarize"],
         temperature=df["temperature"],

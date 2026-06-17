@@ -78,38 +78,47 @@ def concat_audio(segments: list[dict], gap_ms: int) -> np.ndarray:
 
 
 def build_synced_track(segments: list[dict], source_duration: float, speed: float = 1.0,
-                       max_stretch: float = 2.0) -> np.ndarray:
-    """Original-timeline track (video): each French clip is anchored STRICTLY at its source start
-    time, and fitted into the window until the next line begins — compressed (pitch-preserving,
-    capped at max_stretch) and, if still too long, clipped. This keeps every line locked to the
-    picture and bounds the dub to the source length (no cumulative drift / frozen-frame tail).
-    `speed` (>1) biases everything faster."""
-    total = max(1, int(source_duration * SR))
-    track = np.zeros(total, dtype=np.float32)
+                       max_stretch: float = 1.3) -> tuple[np.ndarray, list[tuple[float, float]]]:
+    """Original-timeline track (video) with ELASTIC, catch-up pacing.
+
+    Each French line plays at near-natural speed: a line is only sped up if it overflows its
+    source slot, and never past `max_stretch` (kept low so the dub stays *understandable* —
+    dense passages used to get crushed to 2x and become a blur). Speech that still doesn't fit
+    EXTENDS the timeline rather than being clipped. To recover sync, the silent gaps between
+    lines are eaten whenever a dense run has pushed the dub behind the picture — so it catches
+    up during quiet stretches. The dub can end a bit LONGER than the source; mux() freezes the
+    last frame for the remainder. Returns (track, dub-clock timeline) so subtitles align to what
+    is actually HEARD, not to the original (now-diverged) source times."""
+    parts: list[np.ndarray] = []
+    timeline: list[tuple[float, float]] = []
+    cursor = 0.0                                            # current end of the dub (seconds)
     n = len(segments)
     for i, seg in enumerate(segments):
         wav, _sr = sf.read(seg["audio_path"], dtype="float32")
         wav = np.asarray(wav, dtype=np.float32)
+        start = max(0.0, seg["start"])
+        # On time -> honor the pause up to this line's source start. Behind (a dense run pushed
+        # us past it) -> begin now, eating the gap to CATCH UP (sync recovers in quiet stretches).
+        if start > cursor:
+            parts.append(np.zeros(int((start - cursor) * SR), dtype=np.float32))
+            cursor = start
         if not len(wav):
+            timeline.append((cursor, cursor))
             continue
-        start = min(max(0.0, seg["start"]), source_duration)
-        nxt = segments[i + 1]["start"] if i + 1 < n else source_duration
-        window = nxt - start
-        if window > 0.3:                                    # fit into the gap to the next line
-            factor = (len(wav) / SR) / window * speed
-            if factor > 1.0:
-                wav = _rubberband(wav, min(max_stretch, factor))
-            cap = int(window * SR)
-            if len(wav) > cap:                              # still too long -> clip with a short fade
-                wav = wav[:cap].copy()
-                f = min(len(wav), int(0.03 * SR))
-                if f:
-                    wav[-f:] *= np.linspace(1.0, 0.0, f, dtype=np.float32)
-        pos = int(start * SR)
-        endp = min(pos + len(wav), total)                  # never write past the source length
-        if endp > pos:
-            track[pos:endp] += wav[:endp - pos]
-    return track
+        dur = len(wav) / SR
+        # Gentle, intelligibility-preserving compression only: speed a line up just enough to
+        # fit its slot, capped at max_stretch. Lines shorter than their slot play at natural pace.
+        window = max(0.3, (segments[i + 1]["start"] if i + 1 < n else source_duration) - start)
+        factor = (dur / window) * speed
+        if factor > 1.0:
+            wav = _rubberband(wav, min(max_stretch, factor))
+            dur = len(wav) / SR
+        timeline.append((cursor, cursor + dur))
+        parts.append(wav)
+        cursor += dur
+    track = np.concatenate(parts) if parts else np.zeros(max(1, int(source_duration * SR)),
+                                                         dtype=np.float32)
+    return track, timeline
 
 
 def _resample_bed(bed_path: Path, out: Path) -> Path:
@@ -123,8 +132,8 @@ def assemble(segments: list[dict], out_mp3: Path, settings: Settings,
             source_duration: float | None = None) -> EpisodeAudio:
     out_mp3.parent.mkdir(parents=True, exist_ok=True)
     if sync_to_source and source_duration:
-        full = build_synced_track(segments, source_duration, speed=settings.video_speed)
-        timeline = [(s["start"], s["end"]) for s in segments]   # subs align to source/video time
+        full, timeline = build_synced_track(segments, source_duration, speed=settings.video_speed,
+                                            max_stretch=settings.video_max_stretch)
     else:
         full = concat_audio(segments, settings.gap_ms)
         timeline = build_timeline(segments, settings.gap_ms)

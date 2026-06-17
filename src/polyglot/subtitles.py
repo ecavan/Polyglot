@@ -111,8 +111,22 @@ def build_lrc(segments: list[dict], timeline: list[tuple[float, float]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def hold_timeline(timeline: list[tuple[float, float]], tail: float = 2.5,
+                  gap: float = 0.12) -> list[tuple[float, float]]:
+    """Keep each subtitle on screen until the next one begins (minus a sliver), so lines linger
+    through pauses instead of flashing off — including silent stretches where nothing is said.
+    The last line holds `tail` extra seconds. Start times are untouched (so .lrc sync is unchanged)."""
+    out: list[tuple[float, float]] = []
+    n = len(timeline)
+    for i, (start, end) in enumerate(timeline):
+        nxt = timeline[i + 1][0] if i + 1 < n else end + tail
+        out.append((start, max(end, nxt - gap)))
+    return out
+
+
 def write_subs(segments, timeline, out_dir: Path, show_id: str, ep_id: str) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
+    timeline = hold_timeline(timeline)          # linger each cue until the next (no quick flash-off)
     (out_dir / f"{ep_id}.srt").write_text(build_srt(segments, timeline, True), encoding="utf-8")
     (out_dir / f"{ep_id}.vtt").write_text(build_vtt(segments, timeline, True), encoding="utf-8")
     (out_dir / f"{ep_id}.target.srt").write_text(build_srt(segments, timeline, False), encoding="utf-8")
