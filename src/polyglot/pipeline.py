@@ -97,7 +97,8 @@ def process_video(job: JobSpec, episode: Episode, settings: Settings) -> dict:
     out_mp4 = video_dir / f"{ep_id}.mp4"
     try:
         video = download.fetch_video(
-            episode.media_url, work, settings.clip_seconds, settings.max_video_minutes
+            episode.media_url, work, settings.clip_seconds, settings.max_video_minutes,
+            max_height=settings.video_height,
         )
         src_audio = download.extract_audio(video, work)
         source_duration = assemble._audio_duration(src_audio)   # = video length

@@ -47,9 +47,12 @@ def to_16k_mono(src: Path, out_dir: Path) -> Path:
     return out
 
 
-def build_ydl_opts(out_dir: Path, clip_seconds: int) -> dict:
+def build_ydl_opts(out_dir: Path, clip_seconds: int, max_height: int = 720) -> dict:
     opts = {
-        "format": "bv*+ba/b",
+        # Cap at max_height: we downscale the burned video to that anyway, so pulling full
+        # 1080p/4K sources just bloats the per-item disk spike (the bottleneck on a near-full
+        # disk). Fall back to best available if nothing <= max_height exists.
+        "format": f"bv*[height<={max_height}]+ba/b[height<={max_height}]/bv*+ba/b",
         "outtmpl": str(out_dir / "video.%(ext)s"),
         "merge_output_format": "mp4",
         "quiet": True,
@@ -77,12 +80,13 @@ def video_metadata(url: str) -> dict:
     }
 
 
-def fetch_video(url: str, out_dir: Path, clip_seconds: int = 0, max_minutes: int = 60) -> Path:
-    """Download a YouTube video (video+audio merged to mp4). Rejects videos longer
-    than max_minutes. clip_seconds>0 downloads only the first N seconds (for testing)."""
+def fetch_video(url: str, out_dir: Path, clip_seconds: int = 0, max_minutes: int = 60,
+                max_height: int = 720) -> Path:
+    """Download a YouTube video (video+audio merged to mp4), capped at max_height. Rejects videos
+    longer than max_minutes. clip_seconds>0 downloads only the first N seconds (for testing)."""
     from yt_dlp import YoutubeDL
     out_dir.mkdir(parents=True, exist_ok=True)
-    opts = build_ydl_opts(out_dir, clip_seconds)
+    opts = build_ydl_opts(out_dir, clip_seconds, max_height)
     with YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)
         dur = info.get("duration") or 0

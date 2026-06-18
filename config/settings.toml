@@ -89,6 +89,7 @@ max_age_days = 7     # also purge anything older than this (weekly window)
 [defaults]
 clip_seconds      = 0        # 0 = full episode; >0 = trim (handy for testing)
 max_video_minutes = 90       # skip videos longer than this (allows 30-45 min shows, blocks 10h streams)
+min_free_gb       = 3        # worker stops before a job if free disk < this (avoids out-of-space cascade)
 min_episode_minutes = 6      # skip items shorter than this (podcast previews/trailers, YouTube shorts)
 video_speed       = 1.0       # speed bias for video dubs (1.0 = natural pace; >1 = faster overall)
 # Elastic sync: how much a dense line may be sped up to fit before it just EXTENDS the video

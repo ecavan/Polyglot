@@ -8,6 +8,7 @@ import fcntl
 import hashlib
 import json
 import os
+import shutil
 import time
 import traceback
 from contextlib import contextmanager
@@ -259,6 +260,11 @@ def drain() -> int:
         n = 0
         while True:
             settings = load_settings()              # fresh per job (video mutates speaker/speed)
+            free_gb = shutil.disk_usage(Path.home()).free / 1e9
+            if free_gb < settings.min_free_gb:      # stop cleanly rather than cascade-fail on a full disk
+                print(f"[worker] stopping: only {free_gb:.1f} GB free (need >= {settings.min_free_gb} GB). "
+                      "Free space and re-run; remaining jobs stay pending.", flush=True)
+                break
             job = _claim_next(settings)
             if not job:
                 break

@@ -61,6 +61,7 @@ class Settings:
     # defaults
     clip_seconds: int
     max_video_minutes: int
+    min_free_gb: float                   # worker stops before a job if free disk is below this
     min_episode_minutes: float           # skip items shorter than this (previews/trailers/shorts)
     video_speed: float
     video_max_stretch: float             # max speed-up of a dense line (low = slower/longer, clearer)
@@ -154,6 +155,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         retention_max_age_days=ret.get("max_age_days", 7),
         clip_seconds=df["clip_seconds"],
         max_video_minutes=df.get("max_video_minutes", 60),
+        min_free_gb=df.get("min_free_gb", 3.0),
         min_episode_minutes=df.get("min_episode_minutes", 6),
         video_speed=df.get("video_speed", 1.0),
         video_max_stretch=df.get("video_max_stretch", 1.3),
