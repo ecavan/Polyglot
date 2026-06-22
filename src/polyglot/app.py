@@ -32,7 +32,8 @@ with left:
     if st.button("Queue video", type="primary", disabled=not url.strip()):
         try:
             with st.spinner("Reading video info…"):
-                m = download.video_metadata(url.strip(), settings.ytdlp_cookies_browser)
+                m = download.video_metadata(url.strip(), settings.ytdlp_cookies_browser,
+                                            settings.ytdlp_cookies_file)
             jobs.add_video(settings, url.strip(), title=m["title"], channel=m["channel"],
                            video_id=m["video_id"], duration=m["duration"],
                            published_ts=m.get("published_ts"), speakers=int(speakers), domain=domain)

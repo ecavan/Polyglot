@@ -62,6 +62,7 @@ class Settings:
     clip_seconds: int
     max_video_minutes: int
     ytdlp_cookies_browser: str           # browser to pull YouTube cookies from (bot-check); "" = off
+    ytdlp_cookies_file: str              # static cookies.txt (preferred; no Keychain prompt); "" = off
     min_free_gb: float                   # worker stops before a job if free disk is below this
     min_episode_minutes: float           # skip items shorter than this (previews/trailers/shorts)
     video_speed: float
@@ -97,6 +98,16 @@ class JobSpec:
     voice_refs: list[Path]
     settings: Settings
     domain: str | None = None
+
+
+def _existing_cookie_file(raw: str) -> str:
+    """Return the expanded cookies.txt path only if it actually exists — a path pointing at a
+    missing file would make yt-dlp send NO cookies (and silently fail the bot-check), so until
+    it's created we fall back to cookies_browser instead."""
+    if not raw:
+        return ""
+    p = Path(raw).expanduser()
+    return str(p) if p.is_file() else ""
 
 
 def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
@@ -157,6 +168,7 @@ def load_settings(path: Path = DEFAULT_SETTINGS_PATH) -> Settings:
         clip_seconds=df["clip_seconds"],
         max_video_minutes=df.get("max_video_minutes", 60),
         ytdlp_cookies_browser=d.get("download", {}).get("cookies_browser", ""),
+        ytdlp_cookies_file=_existing_cookie_file(d.get("download", {}).get("cookies_file", "")),
         min_free_gb=df.get("min_free_gb", 3.0),
         min_episode_minutes=df.get("min_episode_minutes", 6),
         video_speed=df.get("video_speed", 1.0),

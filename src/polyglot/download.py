@@ -47,8 +47,20 @@ def to_16k_mono(src: Path, out_dir: Path) -> Path:
     return out
 
 
+def _apply_cookies(opts: dict, cookies_browser: str = "", cookies_file: str = "") -> dict:
+    """YouTube gates downloads with 'confirm you're not a bot' — authenticate with cookies.
+    Prefer a static cookies.txt (cookies_file): it needs no Keychain access, so it works in
+    unattended/detached runs. cookies_browser reads the live browser store but on macOS can
+    trigger an interactive Keychain prompt that HANGS a headless worker forever."""
+    if cookies_file:
+        opts["cookiefile"] = cookies_file
+    elif cookies_browser:
+        opts["cookiesfrombrowser"] = (cookies_browser,)
+    return opts
+
+
 def build_ydl_opts(out_dir: Path, clip_seconds: int, max_height: int = 720,
-                   cookies_browser: str = "") -> dict:
+                   cookies_browser: str = "", cookies_file: str = "") -> dict:
     opts = {
         # Cap at max_height: we downscale the burned video to that anyway, so pulling full
         # 1080p/4K sources just bloats the per-item disk spike (the bottleneck on a near-full
@@ -59,8 +71,7 @@ def build_ydl_opts(out_dir: Path, clip_seconds: int, max_height: int = 720,
         "quiet": True,
         "noprogress": True,
     }
-    if cookies_browser:                     # YouTube "confirm you're not a bot" -> use browser cookies
-        opts["cookiesfrombrowser"] = (cookies_browser,)
+    _apply_cookies(opts, cookies_browser, cookies_file)
     if clip_seconds and clip_seconds > 0:
         from yt_dlp.utils import download_range_func
         opts["download_ranges"] = download_range_func(None, [(0, clip_seconds)])
@@ -68,13 +79,12 @@ def build_ydl_opts(out_dir: Path, clip_seconds: int, max_height: int = 720,
     return opts
 
 
-def video_metadata(url: str, cookies_browser: str = "") -> dict:
+def video_metadata(url: str, cookies_browser: str = "", cookies_file: str = "") -> dict:
     """Quick metadata (no download) for a YouTube URL — id, title, channel, duration (sec)."""
     from yt_dlp import YoutubeDL
     from polyglot.feeds import _yyyymmdd_to_epoch
     opts = {"quiet": True, "noprogress": True, "skip_download": True}
-    if cookies_browser:
-        opts["cookiesfrombrowser"] = (cookies_browser,)
+    _apply_cookies(opts, cookies_browser, cookies_file)
     with YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)
     return {
@@ -87,12 +97,12 @@ def video_metadata(url: str, cookies_browser: str = "") -> dict:
 
 
 def fetch_video(url: str, out_dir: Path, clip_seconds: int = 0, max_minutes: int = 60,
-                max_height: int = 720, cookies_browser: str = "") -> Path:
+                max_height: int = 720, cookies_browser: str = "", cookies_file: str = "") -> Path:
     """Download a YouTube video (video+audio merged to mp4), capped at max_height. Rejects videos
     longer than max_minutes. clip_seconds>0 downloads only the first N seconds (for testing)."""
     from yt_dlp import YoutubeDL
     out_dir.mkdir(parents=True, exist_ok=True)
-    opts = build_ydl_opts(out_dir, clip_seconds, max_height, cookies_browser)
+    opts = build_ydl_opts(out_dir, clip_seconds, max_height, cookies_browser, cookies_file)
     with YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=False)
         dur = info.get("duration") or 0
