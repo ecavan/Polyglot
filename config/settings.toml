@@ -70,6 +70,12 @@ segment = 7            # chunk length (s); htdemucs Transformer max is 7.8
 bed      = true        # mix the music/SFX bed under the dubbed speech
 bed_gain = 0.6         # bed level under speech (prominent)
 
+[download]
+# YouTube increasingly gates downloads behind "confirm you're not a bot". Pull cookies from a
+# browser you're logged into YouTube with to authenticate. "" = off; "chrome"/"safari"/"firefox".
+# (Chrome on macOS may prompt for Keychain access; Safari needs the terminal to have Full Disk Access.)
+cookies_browser = "chrome"
+
 [paths]
 cache   = "cache"
 output  = "output"

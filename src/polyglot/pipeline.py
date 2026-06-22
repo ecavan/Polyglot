@@ -98,7 +98,7 @@ def process_video(job: JobSpec, episode: Episode, settings: Settings) -> dict:
     try:
         video = download.fetch_video(
             episode.media_url, work, settings.clip_seconds, settings.max_video_minutes,
-            max_height=settings.video_height,
+            max_height=settings.video_height, cookies_browser=settings.ytdlp_cookies_browser,
         )
         src_audio = download.extract_audio(video, work)
         source_duration = assemble._audio_duration(src_audio)   # = video length
